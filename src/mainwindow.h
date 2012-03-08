@@ -17,6 +17,9 @@ public:
 
 private slots:
     void open();
+    void undo();
+    void redo();
+    void processHistogramDisplay();
     void processHistogramEqualization();
 
 protected:
@@ -30,16 +33,23 @@ private:
 
     ImageEditor imageEditor;
     vector<QImage> images;
+    int cntImageNum;
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;
+    FloatPanel* histogramPanel;
 
     QAction* openAct;
+    QAction* undoAct;
+    QAction* redoAct;
     QAction* histogramEqualizationAct;
 
     QMenu* fileMenu;
+    QMenu* editMenu;
     QMenu* processMenu;
     QMenu* pointOperationMenu;
+
+    void clearStack();
 
 };
 

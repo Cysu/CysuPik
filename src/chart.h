@@ -10,16 +10,14 @@ class Chart : public QWidget
 {
     Q_OBJECT
 public:
-    explicit Chart(const vector<int>& x, const vector<int>& y, QWidget *parent = 0);
-    QSize sizeHint() const;
+    explicit Chart(int* y, QWidget *parent = 0);
 
 protected:
     void paintEvent(QPaintEvent *event);
 
 private:
-    vector<int> x, y;
-    int maxY, maxX;
-    int minY, minX;
+    int* y;
+    int maxY;
 };
 
 #endif // CHART_H

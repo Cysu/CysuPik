@@ -2,6 +2,7 @@
 #define IMAGEEDITOR_H
 
 #include <QImage>
+#include <QColor>
 #include <iostream>
 
 using namespace std;
@@ -9,7 +10,9 @@ using namespace std;
 class ImageEditor {
 public:
     ImageEditor();
-    vector<int> getHistogram();
+
+    static void getHistogram(QImage* image, int* histogram);
+
     void histogramEqualization();
     void setImage(QImage* srcImage, QImage* dstImage);
 
