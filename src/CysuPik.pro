@@ -12,10 +12,14 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    imageeditor.cpp
+    imageeditor.cpp \
+    chart.cpp
 
 HEADERS  += mainwindow.h \
-    imageeditor.h
+    imageeditor.h \
+    chart.h
+
+
 
 
 

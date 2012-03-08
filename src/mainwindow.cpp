@@ -7,11 +7,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     imageLabel->setScaledContents(true);
     imageLabel->resize(0, 0);
 
-    scrollArea = new QScrollArea;
-    scrollArea->setBackgroundRole(QPalette::Dark);
-    scrollArea->setWidget(imageLabel);
-    setCentralWidget(scrollArea);
-
+    createPanels();
     createActions();
     createMenus();
 
@@ -41,6 +37,28 @@ void MainWindow::processHistogramEqualization() {
     images.push_back(image);
     imageLabel->setPixmap(QPixmap::fromImage(image));
     imageLabel->adjustSize();
+}
+
+void MainWindow::createPanels() {
+    mainPanel = new QScrollArea;
+    mainPanel->setBackgroundRole(QPalette::Dark);
+    mainPanel->setWidget(imageLabel);
+    setCentralWidget(mainPanel);
+
+    Chart* chart = new Chart(this);
+
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->addWidget(chart);
+    layout->addWidget(new QTextEdit);
+
+    QWidget* frame = new QWidget();
+    frame->setLayout(layout);
+
+    sidePanel = new QDockWidget(tr("Control Panel"), this);
+    sidePanel->setBackgroundRole(QPalette::Dark);
+    sidePanel->setWidget(frame);
+    addDockWidget(Qt::RightDockWidgetArea, sidePanel);
+
 }
 
 void MainWindow::createActions() {

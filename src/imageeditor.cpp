@@ -38,6 +38,6 @@ void ImageEditor::histogramEqualization() {
     for (int i = 0; i < srcImage->width(); i ++)
         for (int j = 0; j < srcImage->height(); j ++) {
             int g = qGray(srcImage->pixel(i, j));
-            dstImage->setPixel(i, j, 255 - f[g]);
+            dstImage->setPixel(i, j, f[g]);
         }
 }

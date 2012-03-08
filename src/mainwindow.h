@@ -1,16 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QFileDialog>
-#include <QLabel>
-#include <QAction>
-#include <QScrollBar>
-#include <QScrollArea>
-#include <QMessageBox>
-#include <QMenuBar>
-#include <QMenu>
+#include <QtGui>
 #include <vector>
+#include "chart.h"
 #include "imageeditor.h"
 
 using namespace std;
@@ -30,7 +23,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event);
 
 private:
-
+    void createPanels();
     void createActions();
     void createMenus();
 
@@ -38,7 +31,8 @@ private:
     vector<QImage> images;
 
     QLabel* imageLabel;
-    QScrollArea* scrollArea;
+    QScrollArea* mainPanel;
+    QDockWidget* sidePanel;
 
     QAction* openAct;
     QAction* histogramEqualizationAct;
