@@ -6,18 +6,38 @@
 
 QT       += core gui
 
-TARGET = CysuEdiPic
+TARGET = CysuPik
 TEMPLATE = app
 
 
 SOURCES += main.cpp\
         mainwindow.cpp \
     imageeditor.cpp \
+    floatpanel.cpp \
     chart.cpp
 
 HEADERS  += mainwindow.h \
     imageeditor.h \
+    floatpanel.h \
     chart.h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

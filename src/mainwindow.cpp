@@ -37,6 +37,10 @@ void MainWindow::processHistogramEqualization() {
     images.push_back(image);
     imageLabel->setPixmap(QPixmap::fromImage(image));
     imageLabel->adjustSize();
+
+    vector<int> x;
+    for (int i = 0; i < 255; i ++) x.push_back(i);
+    addDockWidget(Qt::RightDockWidgetArea, new FloatPanel(tr("Histogram"), new Chart(x, imageEditor.getHistogram())));
 }
 
 void MainWindow::createPanels() {
@@ -44,21 +48,6 @@ void MainWindow::createPanels() {
     mainPanel->setBackgroundRole(QPalette::Dark);
     mainPanel->setWidget(imageLabel);
     setCentralWidget(mainPanel);
-
-    Chart* chart = new Chart(this);
-
-    QVBoxLayout* layout = new QVBoxLayout();
-    layout->addWidget(chart);
-    layout->addWidget(new QTextEdit);
-
-    QWidget* frame = new QWidget();
-    frame->setLayout(layout);
-
-    sidePanel = new QDockWidget(tr("Control Panel"), this);
-    sidePanel->setBackgroundRole(QPalette::Dark);
-    sidePanel->setWidget(frame);
-    addDockWidget(Qt::RightDockWidgetArea, sidePanel);
-
 }
 
 void MainWindow::createActions() {

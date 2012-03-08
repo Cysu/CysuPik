@@ -3,6 +3,7 @@
 
 #include <QtGui>
 #include <vector>
+#include "floatpanel.h"
 #include "chart.h"
 #include "imageeditor.h"
 
@@ -32,7 +33,6 @@ private:
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;
-    QDockWidget* sidePanel;
 
     QAction* openAct;
     QAction* histogramEqualizationAct;

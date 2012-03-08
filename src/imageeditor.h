@@ -9,6 +9,7 @@ using namespace std;
 class ImageEditor {
 public:
     ImageEditor();
+    vector<int> getHistogram();
     void histogramEqualization();
     void setImage(QImage* srcImage, QImage* dstImage);
 

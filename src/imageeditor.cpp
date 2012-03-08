@@ -4,6 +4,19 @@ ImageEditor::ImageEditor() {
 
 }
 
+vector<int> ImageEditor::getHistogram() {
+    int histogram[256];
+    memset(histogram, 0, sizeof(histogram));
+    for (int i = 0; i < srcImage->width(); i ++)
+        for (int j = 0; j < srcImage->height(); j ++) {
+            int g = qGray(srcImage->pixel(i, j));
+            histogram[g] ++;
+        }
+    vector<int> ret;
+    for (int i = 0; i < 256; i ++) ret.push_back(histogram[i]);
+    return ret;
+}
+
 void ImageEditor::setImage(QImage* srcImage, QImage* dstImage) {
     this->srcImage = srcImage;
     this->dstImage = dstImage;

@@ -1,21 +1,25 @@
 #ifndef CHART_H
 #define CHART_H
 
-#include <QWidget>
 #include <QtGui>
+#include <vector>
 
-class Chart : public QWidget {
+using namespace std;
+
+class Chart : public QWidget
+{
     Q_OBJECT
 public:
-    explicit Chart(QWidget *parent = 0);
-
-signals:
-
-public slots:
+    explicit Chart(const vector<int>& x, const vector<int>& y, QWidget *parent = 0);
+    QSize sizeHint() const;
 
 protected:
-    void paintEvent(QPaintEvent* event);
+    void paintEvent(QPaintEvent *event);
 
+private:
+    vector<int> x, y;
+    int maxY, maxX;
+    int minY, minX;
 };
 
 #endif // CHART_H
