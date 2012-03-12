@@ -19,7 +19,12 @@ private slots:
     void open();
     void undo();
     void redo();
-    void processHistogramDisplay();
+    void displayHistogramPanel();
+    void displayThresholdPanel();
+    void processAntiColor();
+    void processThresholdMove(int value);
+    void processThresholdBegin();
+    void processThresholdEnd();
     void processHistogramEqualization();
 
 protected:
@@ -38,10 +43,13 @@ private:
     QLabel* imageLabel;
     QScrollArea* mainPanel;
     FloatPanel* histogramPanel;
+    FloatPanel* thresholdPanel;
 
     QAction* openAct;
     QAction* undoAct;
     QAction* redoAct;
+    QAction* antiColorAct;
+    QAction* thresholdAct;
     QAction* histogramEqualizationAct;
 
     QMenu* fileMenu;

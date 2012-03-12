@@ -6,7 +6,7 @@ Chart::Chart(int* y, QWidget *parent) : QWidget(parent) {
     for (int i = 0; i < 256; i ++) {
         if (maxY < y[i]) maxY = y[i];
     }
-    setFixedSize(256, 100);
+    setFixedSize(257, 100);
 }
 
 void Chart::paintEvent(QPaintEvent *event) {
@@ -15,6 +15,6 @@ void Chart::paintEvent(QPaintEvent *event) {
     painter.drawLine(0, h, 0, 0);
     painter.drawLine(0, h, w, h);
     for (int i = 0; i < 256; i ++) {
-        painter.drawLine(i, h, i, (int)(h - y[i] * 100.0 / maxY));
+        painter.drawLine(i + 1, h, i + 1, (int)(h - y[i] * 100.0 / maxY));
     }
 }

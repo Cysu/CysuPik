@@ -13,6 +13,7 @@ public:
 
     static void getHistogram(QImage* image, int* histogram);
 
+    void threshold(int value);
     void histogramEqualization();
     void setImage(QImage* srcImage, QImage* dstImage);
 

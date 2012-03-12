@@ -17,6 +17,15 @@ void ImageEditor::setImage(QImage* srcImage, QImage* dstImage) {
     this->dstImage = dstImage;
 }
 
+void ImageEditor::threshold(int value) {
+    *dstImage = srcImage->copy(0, 0, srcImage->width(), srcImage->height());
+    for (int i = 0; i < dstImage->width(); i ++)
+        for (int j = 0; j < dstImage->height(); j ++) {
+            int g = qGray(dstImage->pixel(i, j));
+            if (g > value) dstImage->setPixel(i, j, 0);
+        }
+}
+
 void ImageEditor::histogramEqualization() {
     if (srcImage->isGrayscale()) {
         int histogram[256];
