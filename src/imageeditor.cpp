@@ -23,6 +23,7 @@ void ImageEditor::threshold(int value) {
         for (int j = 0; j < dstImage->height(); j ++) {
             int g = qGray(dstImage->pixel(i, j));
             if (g > value) dstImage->setPixel(i, j, 0);
+            else dstImage->setPixel(i, j, 255);
         }
 }
 

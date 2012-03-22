@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     showMaximized();
 
     cntImageNum = -1;
+    previewImage = NULL;
 }
 
 /* *
@@ -94,6 +95,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
  * */
 
 void MainWindow::open() {
+    addPreview();
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QDir::currentPath());
     if (!fileName.isEmpty()) {
         QImage image(fileName);
@@ -110,26 +112,35 @@ void MainWindow::open() {
 }
 
 void MainWindow::undo() {
-    if (cntImageNum > 0) {
-        imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum - 1]));
+    if (previewImage != NULL && cntImageNum >= 0) {
+        imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum]));
         imageLabel->adjustSize();
-        cntImageNum --;
+        displayHistogramPanel();
+    } else if (previewImage == NULL && cntImageNum > 0) {
+        imageLabel->setPixmap(QPixmap::fromImage(images[-- cntImageNum]));
+        imageLabel->adjustSize();
         displayHistogramPanel();
     }
 }
 
 void MainWindow::redo() {
-    if (cntImageNum < images.size() - 1) {
-        imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum + 1]));
+    if (previewImage != NULL) {
+        imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
         imageLabel->adjustSize();
-        cntImageNum ++;
+        displayHistogramPanel(previewImage);
+    } else if (cntImageNum < images.size() - 1) {
+        imageLabel->setPixmap(QPixmap::fromImage(images[++ cntImageNum]));
+        imageLabel->adjustSize();
         displayHistogramPanel();
     }
 }
 
-void MainWindow::displayHistogramPanel() {
+void MainWindow::displayHistogramPanel(QImage* image) {
     int* tmpH = new int[256];
-    ImageEditor::getHistogram(&images[cntImageNum], tmpH);
+    if (image == NULL)
+        ImageEditor::getHistogram(&images[cntImageNum], tmpH);
+    else
+        ImageEditor::getHistogram(image, tmpH);
     delete histogramPanel;
     histogramPanel = new FloatPanel(tr("Histogram"), new Chart(tmpH));
     addDockWidget(Qt::RightDockWidgetArea, histogramPanel);
@@ -140,15 +151,14 @@ void MainWindow::displayThresholdPanel() {
     slider->setMinimum(0);
     slider->setMaximum(255);
     slider->setFixedSize(256, 20);
-    connect(slider, SIGNAL(sliderMoved(int)), this, SLOT(processThresholdMove(int)));
-    connect(slider, SIGNAL(sliderPressed()), this, SLOT(processThresholdBegin()));
-    connect(slider, SIGNAL(sliderReleased()), this, SLOT(processThresholdEnd()));
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processThreshold(int)));
     delete thresholdPanel;
     thresholdPanel = new FloatPanel(tr("Threshold"), slider);
-    addDockWidget(Qt::RightDockWidgetArea, thresholdPanel);
+    addDockWidget(Qt::TopDockWidgetArea, thresholdPanel);
 }
 
 void MainWindow::processAntiColor() {
+    addPreview();
     QImage image = images[cntImageNum];
     image.invertPixels();
     clearStack();
@@ -158,24 +168,18 @@ void MainWindow::processAntiColor() {
     displayHistogramPanel();
 }
 
-void MainWindow::processThresholdMove(int value) {
-    imageEditor.setImage(&images[cntImageNum - 1], &images[cntImageNum]);
-    imageEditor.threshold(255 - value);
-    imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum]));
+void MainWindow::processThreshold(int value) {
+    if (previewImage == NULL)
+        previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.threshold(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
     imageLabel->adjustSize();
-}
-
-void MainWindow::processThresholdBegin() {
-    QImage image = images[cntImageNum];
-    clearStack();
-    images.push_back(image);
-}
-
-void MainWindow::processThresholdEnd() {
-    cntImageNum --;
+    displayHistogramPanel(previewImage);
 }
 
 void MainWindow::processHistogramEqualization() {
+    addPreview();
     QImage image;
     imageEditor.setImage(&images[cntImageNum], &image);
     clearStack();
@@ -194,4 +198,13 @@ void MainWindow::clearStack() {
     while (images.size() - 1 > cntImageNum)
         images.pop_back();
     cntImageNum ++;
+}
+
+void MainWindow::addPreview() {
+    if (previewImage != NULL) {
+        clearStack();
+        images.push_back(*previewImage);
+        delete previewImage;
+        previewImage = NULL;
+    }
 }

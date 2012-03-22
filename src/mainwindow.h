@@ -19,12 +19,10 @@ private slots:
     void open();
     void undo();
     void redo();
-    void displayHistogramPanel();
+    void displayHistogramPanel(QImage* image = NULL);
     void displayThresholdPanel();
     void processAntiColor();
-    void processThresholdMove(int value);
-    void processThresholdBegin();
-    void processThresholdEnd();
+    void processThreshold(int value);
     void processHistogramEqualization();
 
 protected:
@@ -39,6 +37,7 @@ private:
     ImageEditor imageEditor;
     vector<QImage> images;
     int cntImageNum;
+    QImage* previewImage;
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;
@@ -58,6 +57,7 @@ private:
     QMenu* pointOperationMenu;
 
     void clearStack();
+    void addPreview();
 
 };
 
