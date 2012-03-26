@@ -31,6 +31,9 @@ void MainWindow::createPanels() {
 
     histogramPanel = NULL;
     thresholdPanel = NULL;
+    horizontalScalingPanel = NULL;
+    verticalScalingPanel = NULL;
+    rotationPanel = NULL;
 }
 
 void MainWindow::createActions() {
@@ -57,6 +60,22 @@ void MainWindow::createActions() {
     histogramEqualizationAct = new QAction(tr("Histogram Equalization"), this);
     histogramEqualizationAct->setShortcut(tr("Ctrl+B"));
     connect(histogramEqualizationAct, SIGNAL(triggered()), this, SLOT(processHistogramEqualization()));
+
+    horizontalMirrorAct = new QAction(tr("Horizontal Mirror"), this);
+    horizontalMirrorAct->setShortcut(tr("Ctrl+L"));
+    connect(horizontalMirrorAct, SIGNAL(triggered()), this, SLOT(processHorizontalMirror()));
+
+    verticalMirrorAct = new QAction(tr("Vertical Mirror"), this);
+    verticalMirrorAct->setShortcut(tr("Ctrl+K"));
+    connect(verticalMirrorAct, SIGNAL(triggered()), this, SLOT(processVerticalMirror()));
+
+    scalingAct = new QAction(tr("Scaling"), this);
+    scalingAct->setShortcut(tr("Ctrl+S"));
+    connect(scalingAct, SIGNAL(triggered()), this, SLOT(displayScalingPanel()));
+
+    rotationAct = new QAction(tr("Rotation"), this);
+    rotationAct->setShortcut(tr("Ctrl+R"));
+    connect(rotationAct, SIGNAL(triggered()), this, SLOT(displayRotationPanel()));
 }
 
 void MainWindow::createMenus() {
@@ -72,6 +91,11 @@ void MainWindow::createMenus() {
     pointOperationMenu->addAction(antiColorAct);
     pointOperationMenu->addAction(thresholdAct);
     pointOperationMenu->addAction(histogramEqualizationAct);
+    geoOperationMenu = processMenu->addMenu(tr("&Geometric Operation"));
+    geoOperationMenu->addAction(horizontalMirrorAct);
+    geoOperationMenu->addAction(verticalMirrorAct);
+    geoOperationMenu->addAction(scalingAct);
+    geoOperationMenu->addAction(rotationAct);
 
     menuBar()->addMenu(fileMenu);
     menuBar()->addMenu(editMenu);
@@ -79,15 +103,21 @@ void MainWindow::createMenus() {
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *event) {
-    if (cntImageNum > 0) {
-        imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum - 1]));
-        imageLabel->adjustSize();
+    if (event->button() == Qt::LeftButton) {
+        if (cntImageNum > 0) {
+            imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum - 1]));
+            imageLabel->adjustSize();
+        }
+    } else if (event->button() == Qt::RightButton) {
+        addPreview();
     }
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
-    imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum]));
-    imageLabel->adjustSize();
+    if (event->button() == Qt::LeftButton) {
+        imageLabel->setPixmap(QPixmap::fromImage(images[cntImageNum]));
+        imageLabel->adjustSize();
+    }
 }
 
 /* *
@@ -95,7 +125,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
  * */
 
 void MainWindow::open() {
-    addPreview();
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QDir::currentPath());
     if (!fileName.isEmpty()) {
         QImage image(fileName);
@@ -157,8 +186,40 @@ void MainWindow::displayThresholdPanel() {
     addDockWidget(Qt::TopDockWidgetArea, thresholdPanel);
 }
 
+void MainWindow::displayScalingPanel() {
+    QSlider* slider = new QSlider(Qt::Horizontal, this);
+    slider->setMinimum(1);
+    slider->setMaximum(200);
+    slider->setFixedSize(200, 20);
+    slider->setValue(100);
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processHorizontalScaling(int)));
+    delete horizontalScalingPanel;
+    horizontalScalingPanel = new FloatPanel(tr("Horizontal Scaling"), slider);
+    addDockWidget(Qt::TopDockWidgetArea, horizontalScalingPanel);
+
+    slider = new QSlider(Qt::Horizontal, this);
+    slider->setMinimum(1);
+    slider->setMaximum(200);
+    slider->setFixedSize(200, 20);
+    slider->setValue(100);
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processVerticalScaling(int)));
+    delete verticalScalingPanel;
+    verticalScalingPanel = new FloatPanel(tr("Vertical Scaling"), slider);
+    addDockWidget(Qt::TopDockWidgetArea, verticalScalingPanel);
+}
+
+void MainWindow::displayRotationPanel() {
+    QSlider* slider = new QSlider(Qt::Horizontal, this);
+    slider->setMinimum(0);
+    slider->setMaximum(360);
+    slider->setFixedSize(361, 20);
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processRotation(int)));
+    delete rotationPanel;
+    rotationPanel = new FloatPanel(tr("Rotation"), slider);
+    addDockWidget(Qt::TopDockWidgetArea, rotationPanel);
+}
+
 void MainWindow::processAntiColor() {
-    addPreview();
     QImage image = images[cntImageNum];
     image.invertPixels();
     clearStack();
@@ -169,8 +230,7 @@ void MainWindow::processAntiColor() {
 }
 
 void MainWindow::processThreshold(int value) {
-    if (previewImage == NULL)
-        previewImage = new QImage;
+    if (previewImage == NULL) previewImage = new QImage;
     imageEditor.setImage(&images[cntImageNum], previewImage);
     imageEditor.threshold(value);
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
@@ -179,7 +239,6 @@ void MainWindow::processThreshold(int value) {
 }
 
 void MainWindow::processHistogramEqualization() {
-    addPreview();
     QImage image;
     imageEditor.setImage(&images[cntImageNum], &image);
     clearStack();
@@ -188,6 +247,51 @@ void MainWindow::processHistogramEqualization() {
     imageLabel->setPixmap(QPixmap::fromImage(image));
     imageLabel->adjustSize();
     displayHistogramPanel();
+}
+
+void MainWindow::processHorizontalMirror() {
+    QImage image = images[cntImageNum].mirrored(true, false);
+    clearStack();
+    images.push_back(image);
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    imageLabel->adjustSize();
+    displayHistogramPanel();
+}
+
+void MainWindow::processVerticalMirror() {
+    QImage image = images[cntImageNum].mirrored(false, true);
+    clearStack();
+    images.push_back(image);
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    imageLabel->adjustSize();
+    displayHistogramPanel();
+}
+
+void MainWindow::processHorizontalScaling(int value) {
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.horizontalScaling(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
+}
+
+void MainWindow::processVerticalScaling(int value) {
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.verticalScaling(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
+}
+
+void MainWindow::processRotation(int value) {
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.rotation(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
 }
 
 /* *

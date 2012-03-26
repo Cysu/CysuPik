@@ -21,9 +21,16 @@ private slots:
     void redo();
     void displayHistogramPanel(QImage* image = NULL);
     void displayThresholdPanel();
+    void displayScalingPanel();
+    void displayRotationPanel();
     void processAntiColor();
     void processThreshold(int value);
     void processHistogramEqualization();
+    void processHorizontalMirror();
+    void processVerticalMirror();
+    void processHorizontalScaling(int value);
+    void processVerticalScaling(int value);
+    void processRotation(int value);
 
 protected:
     void mousePressEvent(QMouseEvent* event);
@@ -43,6 +50,9 @@ private:
     QScrollArea* mainPanel;
     FloatPanel* histogramPanel;
     FloatPanel* thresholdPanel;
+    FloatPanel* horizontalScalingPanel;
+    FloatPanel* verticalScalingPanel;
+    FloatPanel* rotationPanel;
 
     QAction* openAct;
     QAction* undoAct;
@@ -50,11 +60,16 @@ private:
     QAction* antiColorAct;
     QAction* thresholdAct;
     QAction* histogramEqualizationAct;
+    QAction* horizontalMirrorAct;
+    QAction* verticalMirrorAct;
+    QAction* scalingAct;
+    QAction* rotationAct;
 
     QMenu* fileMenu;
     QMenu* editMenu;
     QMenu* processMenu;
     QMenu* pointOperationMenu;
+    QMenu* geoOperationMenu;
 
     void clearStack();
     void addPreview();

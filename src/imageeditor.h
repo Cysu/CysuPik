@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QColor>
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -15,6 +16,9 @@ public:
 
     void threshold(int value);
     void histogramEqualization();
+    void horizontalScaling(int value);
+    void verticalScaling(int value);
+    void rotation(int value);
     void setImage(QImage* srcImage, QImage* dstImage);
 
 private:
