@@ -25,6 +25,8 @@ public:
 private:
     QImage* srcImage;
     QImage* dstImage;
+
+    void floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD);
 };
 
 #endif // IMAGEEDITOR_H
