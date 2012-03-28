@@ -31,6 +31,7 @@ private slots:
     void processHorizontalScaling(int value);
     void processVerticalScaling(int value);
     void processRotation(int value);
+    void processHaze();
 
 protected:
     void mousePressEvent(QMouseEvent* event);
@@ -64,12 +65,14 @@ private:
     QAction* verticalMirrorAct;
     QAction* scalingAct;
     QAction* rotationAct;
+    QAction* hazeAct;
 
     QMenu* fileMenu;
     QMenu* editMenu;
     QMenu* processMenu;
     QMenu* pointOperationMenu;
     QMenu* geoOperationMenu;
+    QMenu* otherOperationMenu;
 
     void clearStack();
     void addPreview();

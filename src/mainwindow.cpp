@@ -76,6 +76,10 @@ void MainWindow::createActions() {
     rotationAct = new QAction(tr("Rotation"), this);
     rotationAct->setShortcut(tr("Ctrl+R"));
     connect(rotationAct, SIGNAL(triggered()), this, SLOT(displayRotationPanel()));
+
+    hazeAct = new QAction(tr("Haze"), this);
+    hazeAct->setShortcut(tr("Ctrl+E"));
+    connect(hazeAct, SIGNAL(triggered()), this, SLOT(processHaze()));
 }
 
 void MainWindow::createMenus() {
@@ -96,6 +100,8 @@ void MainWindow::createMenus() {
     geoOperationMenu->addAction(verticalMirrorAct);
     geoOperationMenu->addAction(scalingAct);
     geoOperationMenu->addAction(rotationAct);
+    otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
+    otherOperationMenu->addAction(hazeAct);
 
     menuBar()->addMenu(fileMenu);
     menuBar()->addMenu(editMenu);
@@ -292,6 +298,17 @@ void MainWindow::processRotation(int value) {
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
     imageLabel->adjustSize();
     displayHistogramPanel(previewImage);
+}
+
+void MainWindow::processHaze() {
+    QImage image;
+    imageEditor.setImage(&images[cntImageNum], &image);
+    clearStack();
+    imageEditor.haze();
+    images.push_back(image);
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    imageLabel->adjustSize();
+    displayHistogramPanel();
 }
 
 /* *

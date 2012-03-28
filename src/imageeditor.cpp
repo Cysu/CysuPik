@@ -1,4 +1,5 @@
 #include "imageeditor.h"
+#include <cstdio>
 
 ImageEditor::ImageEditor() {
 }
@@ -73,4 +74,62 @@ void ImageEditor::rotation(int value) {
     double theta = value * 3.1415926 / 180.0;
     QTransform trans(cos(theta), sin(theta), -sin(theta), cos(theta), 0, 0);
     *dstImage = srcImage->transformed(trans);
+}
+
+void ImageEditor::haze() {
+    int w = srcImage->width(), h = srcImage->height();
+    double** t = new double*[w];
+    int** tmp = new int*[w];
+    int** darkChannel = new int*[w];
+    for (int i = 0; i < w; i ++) {
+        t[i] = new double[h];
+        tmp[i] = new int[h];
+        darkChannel[i] = new int[h];
+    }
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            QColor c(srcImage->pixel(i, j));
+            tmp[i][j] = min(c.red(), c.green());
+            tmp[i][j] = min(tmp[i][j], c.blue());
+        }
+    // Naive neighbor
+    *dstImage = srcImage->copy();
+    int A = 0;
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            darkChannel[i][j] = 256;
+            for (int dx = -7; dx <= 7; dx ++)
+                for (int dy = -7; dy <= 7; dy ++) {
+                    if (0 <= i + dx && i + dx < w && 0 <= j + dy && j + dy < h) {
+                        darkChannel[i][j] = min(darkChannel[i][j], tmp[i + dx][j + dy]);
+                    }
+                }
+            A = max(A, darkChannel[i][j]);
+            QColor c(darkChannel[i][j], darkChannel[i][j], darkChannel[i][j]);
+            //dstImage->setPixel(i, j, c.rgb());
+
+        }
+
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            t[i][j] = 1 - darkChannel[i][j] * 1.0 / A;
+            //printf("%d %d %lf\n", i, j, t[i][j]);
+        }
+
+    *dstImage = srcImage->copy();
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            QColor c(srcImage->pixel(i, j));
+            if (darkChannel[i][j] == A) continue;
+            if (darkChannel[i][j] == min(c.red(), min(c.green(), c.blue()))) continue;
+
+            //printf("%d %lf, %d %d %d, %d %d %d\n", darkChannel[i][j], t[i][j], c.red(), c.green(), c.blue(), (int)((c.red() - darkChannel[i][j]) / t[i][j]), (int)((c.green() - darkChannel[i][j]) / t[i][j]), (int)((c.blue() - darkChannel[i][j]) / t[i][j]));
+            int r = (c.red() - darkChannel[i][j]) / t[i][j];
+            int g = (c.green() - darkChannel[i][j]) / t[i][j];
+            int b = (c.blue() - darkChannel[i][j]) / t[i][j];
+
+            if (r > 255 || g > 255 || b > 255) continue;
+            c.setRgb(r, g, b);
+            dstImage->setPixel(i, j, c.rgb());
+        }
 }

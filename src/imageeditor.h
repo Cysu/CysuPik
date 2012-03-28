@@ -19,6 +19,7 @@ public:
     void horizontalScaling(int value);
     void verticalScaling(int value);
     void rotation(int value);
+    void haze();
     void setImage(QImage* srcImage, QImage* dstImage);
 
 private:
