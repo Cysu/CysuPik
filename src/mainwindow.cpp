@@ -1,5 +1,15 @@
 #include "mainwindow.h"
 
+#define CREATE_ACTION(act, text, shortcut, func) \
+    act = new QAction(tr(text), this); \
+    act->setShortcut(tr(shortcut)); \
+    connect(act, SIGNAL(triggered()), this, SLOT(func()));
+
+#define RECORD_EDIT(type) \
+    if (prevEditType != type) addPreview(); \
+    prevEditType = type;
+
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     createPanels();
     createActions();
@@ -10,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     cntImageNum = -1;
     previewImage = NULL;
+    prevEditType = NOTHING;
 }
 
 /* *
@@ -31,55 +42,24 @@ void MainWindow::createPanels() {
 
     histogramPanel = NULL;
     thresholdPanel = NULL;
-    horizontalScalingPanel = NULL;
-    verticalScalingPanel = NULL;
+    scalingPanel = NULL;
     rotationPanel = NULL;
+    perspectivePanel = NULL;
 }
 
 void MainWindow::createActions() {
-    openAct = new QAction(tr("&Open..."), this);
-    openAct->setShortcut(tr("Ctrl+O"));
-    connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
-
-    undoAct = new QAction(tr("&Undo"), this);
-    undoAct->setShortcut(tr("Ctrl+Z"));
-    connect(undoAct, SIGNAL(triggered()), this, SLOT(undo()));
-
-    redoAct = new QAction(tr("&Redo"), this);
-    redoAct->setShortcut(tr("Ctrl+Y"));
-    connect(redoAct, SIGNAL(triggered()), this, SLOT(redo()));
-
-    antiColorAct = new QAction(tr("Anti Color"), this);
-    antiColorAct->setShortcut(tr("Ctrl+I"));
-    connect(antiColorAct, SIGNAL(triggered()), this, SLOT(processAntiColor()));
-
-    thresholdAct = new QAction(tr("Threshold"), this);
-    thresholdAct->setShortcut(tr("Ctrl+H"));
-    connect(thresholdAct, SIGNAL(triggered()), this, SLOT(displayThresholdPanel()));
-
-    histogramEqualizationAct = new QAction(tr("Histogram Equalization"), this);
-    histogramEqualizationAct->setShortcut(tr("Ctrl+B"));
-    connect(histogramEqualizationAct, SIGNAL(triggered()), this, SLOT(processHistogramEqualization()));
-
-    horizontalMirrorAct = new QAction(tr("Horizontal Mirror"), this);
-    horizontalMirrorAct->setShortcut(tr("Ctrl+L"));
-    connect(horizontalMirrorAct, SIGNAL(triggered()), this, SLOT(processHorizontalMirror()));
-
-    verticalMirrorAct = new QAction(tr("Vertical Mirror"), this);
-    verticalMirrorAct->setShortcut(tr("Ctrl+K"));
-    connect(verticalMirrorAct, SIGNAL(triggered()), this, SLOT(processVerticalMirror()));
-
-    scalingAct = new QAction(tr("Scaling"), this);
-    scalingAct->setShortcut(tr("Ctrl+S"));
-    connect(scalingAct, SIGNAL(triggered()), this, SLOT(displayScalingPanel()));
-
-    rotationAct = new QAction(tr("Rotation"), this);
-    rotationAct->setShortcut(tr("Ctrl+R"));
-    connect(rotationAct, SIGNAL(triggered()), this, SLOT(displayRotationPanel()));
-
-    hazeAct = new QAction(tr("Haze"), this);
-    hazeAct->setShortcut(tr("Ctrl+E"));
-    connect(hazeAct, SIGNAL(triggered()), this, SLOT(processHaze()));
+    CREATE_ACTION(openAct, "&Open", "Ctrl+O", open);
+    CREATE_ACTION(undoAct, "&Undo", "Ctrl+Z", undo);
+    CREATE_ACTION(redoAct, "&Redo", "Ctrl+Y", redo);
+    CREATE_ACTION(antiColorAct, "Anti Color", "Ctrl+I", processAntiColor);
+    CREATE_ACTION(thresholdAct, "Threshold", "Ctrl+H", displayThresholdPanel);
+    CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+B", processHistogramEqualization);
+    CREATE_ACTION(horizontalMirrorAct, "Horizontal Mirror", "Ctrl+L", processHorizontalMirror);
+    CREATE_ACTION(verticalMirrorAct, "Vertical Mirror", "Ctrl+K", processVerticalMirror);
+    CREATE_ACTION(scalingAct, "Scaling", "Ctrl+S", displayScalingPanel);
+    CREATE_ACTION(rotationAct, "Rotation", "Ctrl+R", displayRotationPanel);
+    CREATE_ACTION(perspectiveAct, "Perspective", "Ctrl+P", displayPerspectivePanel);
+    CREATE_ACTION(hazeAct, "Haze", "Ctrl+E", processHaze);
 }
 
 void MainWindow::createMenus() {
@@ -100,6 +80,7 @@ void MainWindow::createMenus() {
     geoOperationMenu->addAction(verticalMirrorAct);
     geoOperationMenu->addAction(scalingAct);
     geoOperationMenu->addAction(rotationAct);
+    geoOperationMenu->addAction(perspectiveAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
     otherOperationMenu->addAction(hazeAct);
 
@@ -143,6 +124,7 @@ void MainWindow::open() {
         imageLabel->setPixmap(QPixmap::fromImage(image));
         imageLabel->adjustSize();
         displayHistogramPanel();
+        prevEditType = NOTHING;
     }
 }
 
@@ -193,25 +175,33 @@ void MainWindow::displayThresholdPanel() {
 }
 
 void MainWindow::displayScalingPanel() {
-    QSlider* slider = new QSlider(Qt::Horizontal, this);
-    slider->setMinimum(1);
-    slider->setMaximum(200);
-    slider->setFixedSize(200, 20);
-    slider->setValue(100);
-    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processHorizontalScaling(int)));
-    delete horizontalScalingPanel;
-    horizontalScalingPanel = new FloatPanel(tr("Horizontal Scaling"), slider);
-    addDockWidget(Qt::TopDockWidgetArea, horizontalScalingPanel);
+    QSlider* horizontalScalingSlider = new QSlider(Qt::Horizontal, this);
+    horizontalScalingSlider->setMinimum(1);
+    horizontalScalingSlider->setMaximum(200);
+    horizontalScalingSlider->setFixedSize(200, 20);
+    horizontalScalingSlider->setValue(100);
+    connect(horizontalScalingSlider, SIGNAL(valueChanged(int)), this, SLOT(processHorizontalScaling(int)));
 
-    slider = new QSlider(Qt::Horizontal, this);
-    slider->setMinimum(1);
-    slider->setMaximum(200);
-    slider->setFixedSize(200, 20);
-    slider->setValue(100);
-    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(processVerticalScaling(int)));
-    delete verticalScalingPanel;
-    verticalScalingPanel = new FloatPanel(tr("Vertical Scaling"), slider);
-    addDockWidget(Qt::TopDockWidgetArea, verticalScalingPanel);
+    QSlider* verticalScalingSlider = new QSlider(Qt::Horizontal, this);
+    verticalScalingSlider->setMinimum(1);
+    verticalScalingSlider->setMaximum(200);
+    verticalScalingSlider->setFixedSize(200, 20);
+    verticalScalingSlider->setValue(100);
+    connect(verticalScalingSlider, SIGNAL(valueChanged(int)), this, SLOT(processVerticalScaling(int)));
+
+    QWidget* widget = new QWidget;
+    QGridLayout* layout = new QGridLayout;
+    QLabel* horizontalScalingLabel = new QLabel(tr("Horizontal"));
+    QLabel* verticalScalingLabel = new QLabel(tr("Vertical"));
+    layout->addWidget(horizontalScalingLabel, 0, 0);
+    layout->addWidget(horizontalScalingSlider, 0, 1);
+    layout->addWidget(verticalScalingLabel, 1, 0);
+    layout->addWidget(verticalScalingSlider, 1, 1);
+    widget->setLayout(layout);
+
+    delete scalingPanel;
+    scalingPanel = new FloatPanel(tr("Scaling"), widget);
+    addDockWidget(Qt::TopDockWidgetArea, scalingPanel);
 }
 
 void MainWindow::displayRotationPanel() {
@@ -225,7 +215,48 @@ void MainWindow::displayRotationPanel() {
     addDockWidget(Qt::TopDockWidgetArea, rotationPanel);
 }
 
+void MainWindow::displayPerspectivePanel() {
+    QSlider* xSlider = new QSlider(Qt::Horizontal, this);
+    xSlider->setMinimum(0);
+    xSlider->setMaximum(100);
+    xSlider->setFixedSize(200, 20);
+    xSlider->setValue(0);
+    connect(xSlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspectiveX(int)));
+
+    QSlider* ySlider = new QSlider(Qt::Horizontal, this);
+    ySlider->setMinimum(0);
+    ySlider->setMaximum(100);
+    ySlider->setFixedSize(200, 20);
+    ySlider->setValue(0);
+    connect(ySlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspectiveY(int)));
+
+    QSlider* zSlider = new QSlider(Qt::Horizontal, this);
+    zSlider->setMinimum(0);
+    zSlider->setMaximum(100);
+    zSlider->setFixedSize(200, 20);
+    zSlider->setValue(100);
+    connect(zSlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspectiveZ(int)));
+
+    QWidget* widget = new QWidget;
+    QGridLayout* layout = new QGridLayout;
+    QLabel* xLabel = new QLabel(tr("X"));
+    QLabel* yLabel = new QLabel(tr("Y"));
+    QLabel* zLabel = new QLabel(tr("Z"));
+    layout->addWidget(xLabel, 0, 0);
+    layout->addWidget(xSlider, 0, 1);
+    layout->addWidget(yLabel, 1, 0);
+    layout->addWidget(ySlider, 1, 1);
+    layout->addWidget(zLabel, 2, 0);
+    layout->addWidget(zSlider, 2, 1);
+    widget->setLayout(layout);
+
+    delete perspectivePanel;
+    perspectivePanel = new FloatPanel(tr("Perspective"), widget);
+    addDockWidget(Qt::TopDockWidgetArea, perspectivePanel);
+}
+
 void MainWindow::processAntiColor() {
+    RECORD_EDIT(NOTHING);
     QImage image = images[cntImageNum];
     image.invertPixels();
     clearStack();
@@ -236,6 +267,7 @@ void MainWindow::processAntiColor() {
 }
 
 void MainWindow::processThreshold(int value) {
+    RECORD_EDIT(THRESHOLD);
     if (previewImage == NULL) previewImage = new QImage;
     imageEditor.setImage(&images[cntImageNum], previewImage);
     imageEditor.threshold(value);
@@ -245,6 +277,7 @@ void MainWindow::processThreshold(int value) {
 }
 
 void MainWindow::processHistogramEqualization() {
+    RECORD_EDIT(NOTHING);
     QImage image;
     imageEditor.setImage(&images[cntImageNum], &image);
     clearStack();
@@ -256,6 +289,7 @@ void MainWindow::processHistogramEqualization() {
 }
 
 void MainWindow::processHorizontalMirror() {
+    RECORD_EDIT(NOTHING);
     QImage image = images[cntImageNum].mirrored(true, false);
     clearStack();
     images.push_back(image);
@@ -265,6 +299,7 @@ void MainWindow::processHorizontalMirror() {
 }
 
 void MainWindow::processVerticalMirror() {
+    RECORD_EDIT(NOTHING);
     QImage image = images[cntImageNum].mirrored(false, true);
     clearStack();
     images.push_back(image);
@@ -274,6 +309,7 @@ void MainWindow::processVerticalMirror() {
 }
 
 void MainWindow::processHorizontalScaling(int value) {
+    RECORD_EDIT(HORIZONTAL_SCALING);
     if (previewImage == NULL) previewImage = new QImage;
     imageEditor.setImage(&images[cntImageNum], previewImage);
     imageEditor.horizontalScaling(value);
@@ -283,6 +319,7 @@ void MainWindow::processHorizontalScaling(int value) {
 }
 
 void MainWindow::processVerticalScaling(int value) {
+    RECORD_EDIT(VERTICAL_SCALING);
     if (previewImage == NULL) previewImage = new QImage;
     imageEditor.setImage(&images[cntImageNum], previewImage);
     imageEditor.verticalScaling(value);
@@ -292,6 +329,7 @@ void MainWindow::processVerticalScaling(int value) {
 }
 
 void MainWindow::processRotation(int value) {
+    RECORD_EDIT(ROTATION);
     if (previewImage == NULL) previewImage = new QImage;
     imageEditor.setImage(&images[cntImageNum], previewImage);
     imageEditor.rotation(value);
@@ -300,7 +338,38 @@ void MainWindow::processRotation(int value) {
     displayHistogramPanel(previewImage);
 }
 
+void MainWindow::processPerspectiveX(int value) {
+    RECORD_EDIT(PERSPECTIVE_X);
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.perspectiveX(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
+}
+
+void MainWindow::processPerspectiveY(int value) {
+    RECORD_EDIT(PERSPECTIVE_Y);
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.perspectiveY(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
+}
+
+void MainWindow::processPerspectiveZ(int value) {
+    RECORD_EDIT(PERSPECTIVE_Z);
+    if (previewImage == NULL) previewImage = new QImage;
+    imageEditor.setImage(&images[cntImageNum], previewImage);
+    imageEditor.perspectiveZ(value);
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
+    displayHistogramPanel(previewImage);
+}
+
 void MainWindow::processHaze() {
+    RECORD_EDIT(NOTHING);
     QImage image;
     imageEditor.setImage(&images[cntImageNum], &image);
     clearStack();

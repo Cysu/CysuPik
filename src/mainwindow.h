@@ -19,10 +19,13 @@ private slots:
     void open();
     void undo();
     void redo();
+
     void displayHistogramPanel(QImage* image = NULL);
     void displayThresholdPanel();
     void displayScalingPanel();
     void displayRotationPanel();
+    void displayPerspectivePanel();
+
     void processAntiColor();
     void processThreshold(int value);
     void processHistogramEqualization();
@@ -31,6 +34,9 @@ private slots:
     void processHorizontalScaling(int value);
     void processVerticalScaling(int value);
     void processRotation(int value);
+    void processPerspectiveX(int value);
+    void processPerspectiveY(int value);
+    void processPerspectiveZ(int value);
     void processHaze();
 
 protected:
@@ -46,14 +52,15 @@ private:
     vector<QImage> images;
     int cntImageNum;
     QImage* previewImage;
+    EDIT_TYPE prevEditType;
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;
     FloatPanel* histogramPanel;
     FloatPanel* thresholdPanel;
-    FloatPanel* horizontalScalingPanel;
-    FloatPanel* verticalScalingPanel;
+    FloatPanel* scalingPanel;
     FloatPanel* rotationPanel;
+    FloatPanel* perspectivePanel;
 
     QAction* openAct;
     QAction* undoAct;
@@ -65,6 +72,7 @@ private:
     QAction* verticalMirrorAct;
     QAction* scalingAct;
     QAction* rotationAct;
+    QAction* perspectiveAct;
     QAction* hazeAct;
 
     QMenu* fileMenu;

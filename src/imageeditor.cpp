@@ -76,6 +76,29 @@ void ImageEditor::rotation(int value) {
     *dstImage = srcImage->transformed(trans);
 }
 
+void ImageEditor::perspectiveX(int value) {
+    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+    t /= w;
+    //QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
+    QTransform trans(1, 0, t, 0, 1, 0, 0, 0, 1);
+
+    *dstImage = srcImage->transformed(trans);
+}
+
+void ImageEditor::perspectiveY(int value) {
+    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+    t /= w;
+    QTransform trans(1, 0, 0, 0, 1, t, 0, 0, 1);
+
+    *dstImage = srcImage->transformed(trans);
+}
+
+void ImageEditor::perspectiveZ(int value) {
+    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+    QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
+    *dstImage = srcImage->transformed(trans);
+}
+
 void ImageEditor::haze() {
     int w = srcImage->width(), h = srcImage->height();
     double** t = new double*[w];
