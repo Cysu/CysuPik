@@ -6,6 +6,8 @@
 #include "floatpanel.h"
 #include "chart.h"
 #include "imageeditor.h"
+#include "utils.h"
+#include "const.h"
 
 using namespace std;
 
@@ -31,12 +33,9 @@ private slots:
     void processHistogramEqualization();
     void processHorizontalMirror();
     void processVerticalMirror();
-    void processHorizontalScaling(int value);
-    void processVerticalScaling(int value);
+    void processScaling(int value);
     void processRotation(int value);
-    void processPerspectiveX(int value);
-    void processPerspectiveY(int value);
-    void processPerspectiveZ(int value);
+    void processPerspective(int value);
     void processHaze();
 
 protected:
@@ -51,8 +50,8 @@ private:
     ImageEditor imageEditor;
     vector<QImage> images;
     int cntImageNum;
-    QImage* previewImage;
-    EDIT_TYPE prevEditType;
+    QImage *originImage, *previewImage;
+    ACTION_TYPE lastActType;
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;
@@ -61,6 +60,14 @@ private:
     FloatPanel* scalingPanel;
     FloatPanel* rotationPanel;
     FloatPanel* perspectivePanel;
+
+    QSlider* thresholdSlider;
+    QSlider* rotationSlider;
+    QSlider* scalingHSlider;
+    QSlider* scalingVSlider;
+    QSlider* perspectiveXSlider;
+    QSlider* perspectiveYSlider;
+    QSlider* perspectiveZSlider;
 
     QAction* openAct;
     QAction* undoAct;
@@ -84,6 +91,9 @@ private:
 
     void clearStack();
     void addPreview();
+    void recordAct(ACTION_TYPE type);
+    void afterAct(ACTION_TYPE type);
+    bool isSlideAction(ACTION_TYPE type);
 
 };
 

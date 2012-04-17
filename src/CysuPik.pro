@@ -19,7 +19,11 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     imageeditor.h \
     floatpanel.h \
-    chart.h
+    chart.h \
+    const.h \
+    utils.h
+
+
 
 
 

@@ -5,19 +5,13 @@
 #include <QColor>
 #include <iostream>
 #include <cmath>
+#include "utils.h"
+#include "const.h"
 
 using namespace std;
 
-enum EDIT_TYPE {
-    NOTHING,
-    THRESHOLD,
-    VERTICAL_SCALING,
-    HORIZONTAL_SCALING,
-    ROTATION,
-    PERSPECTIVE_X,
-    PERSPECTIVE_Y,
-    PERSPECTIVE_Z
-};
+const QColor WHITE(255, 255, 255);
+const QColor BLACK(0, 0, 0);
 
 class ImageEditor {
 public:
@@ -27,14 +21,14 @@ public:
 
     void setImage(QImage* srcImage, QImage* dstImage);
 
+    void antiColor();
     void threshold(int value);
     void histogramEqualization();
-    void horizontalScaling(int value);
-    void verticalScaling(int value);
+    void horizontalMirror();
+    void verticalMirror();
+    void scaling(int hValue, int vValue);
     void rotation(int value);
-    void perspectiveX(int value);
-    void perspectiveY(int value);
-    void perspectiveZ(int value);
+    void perspective(int xValue, int yValue, int zValue);
     void haze();
 
 private:

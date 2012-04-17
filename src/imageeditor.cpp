@@ -18,6 +18,11 @@ void ImageEditor::setImage(QImage* srcImage, QImage* dstImage) {
     this->dstImage = dstImage;
 }
 
+void ImageEditor::antiColor() {
+    *dstImage = srcImage->copy(0, 0, srcImage->width(), srcImage->height());
+    dstImage->invertPixels();
+}
+
 void ImageEditor::threshold(int value) {
     *dstImage = srcImage->copy(0, 0, srcImage->width(), srcImage->height());
     for (int i = 0; i < dstImage->width(); i ++)
@@ -60,13 +65,16 @@ void ImageEditor::histogramEqualization() {
         }
 }
 
-void ImageEditor::horizontalScaling(int value) {
-    int w = srcImage->width() / 100.0 * value, h = srcImage->height();
-    *dstImage = srcImage->scaled(w, h);
+void ImageEditor::horizontalMirror() {
+    *dstImage = srcImage->mirrored(true, false);
 }
 
-void ImageEditor::verticalScaling(int value) {
-    int w = srcImage->width(), h = srcImage->height() / 100.0 * value;
+void ImageEditor::verticalMirror() {
+    *dstImage = srcImage->mirrored(false, true);
+}
+
+void ImageEditor::scaling(int hValue, int vValue) {
+    int w = srcImage->width() / 100.0 * hValue, h = srcImage->height() / 100.0 * vValue;
     *dstImage = srcImage->scaled(w, h);
 }
 
@@ -76,8 +84,8 @@ void ImageEditor::rotation(int value) {
     *dstImage = srcImage->transformed(trans);
 }
 
-void ImageEditor::perspectiveX(int value) {
-    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+void ImageEditor::perspective(int xValue, int yValue, int zValue) {
+    double t = xValue / 100.0, w = srcImage->width(), h = srcImage->height();
     t /= w;
     //QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
     QTransform trans(1, 0, t, 0, 1, 0, 0, 0, 1);
@@ -85,19 +93,19 @@ void ImageEditor::perspectiveX(int value) {
     *dstImage = srcImage->transformed(trans);
 }
 
-void ImageEditor::perspectiveY(int value) {
-    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
-    t /= w;
-    QTransform trans(1, 0, 0, 0, 1, t, 0, 0, 1);
+//void ImageEditor::perspectiveY(int value) {
+//    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+//    t /= w;
+//    QTransform trans(1, 0, 0, 0, 1, t, 0, 0, 1);
 
-    *dstImage = srcImage->transformed(trans);
-}
+//    *dstImage = srcImage->transformed(trans);
+//}
 
-void ImageEditor::perspectiveZ(int value) {
-    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
-    QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
-    *dstImage = srcImage->transformed(trans);
-}
+//void ImageEditor::perspectiveZ(int value) {
+//    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
+//    QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
+//    *dstImage = srcImage->transformed(trans);
+//}
 
 void ImageEditor::haze() {
     int w = srcImage->width(), h = srcImage->height();
