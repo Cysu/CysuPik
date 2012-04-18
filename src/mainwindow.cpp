@@ -217,22 +217,22 @@ void MainWindow::displayRotationPanel() {
 
 void MainWindow::displayPerspectivePanel() {
     perspectiveXSlider = new QSlider(Qt::Horizontal, this);
-    perspectiveXSlider->setMinimum(0);
-    perspectiveXSlider->setMaximum(100);
+    perspectiveXSlider->setMinimum(-90);
+    perspectiveXSlider->setMaximum(90);
     perspectiveXSlider->setFixedSize(200, 20);
     perspectiveXSlider->setValue(0);
     connect(perspectiveXSlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspective(int)));
 
     perspectiveYSlider = new QSlider(Qt::Horizontal, this);
-    perspectiveYSlider->setMinimum(0);
-    perspectiveYSlider->setMaximum(100);
+    perspectiveYSlider->setMinimum(-90);
+    perspectiveYSlider->setMaximum(90);
     perspectiveYSlider->setFixedSize(200, 20);
     perspectiveYSlider->setValue(0);
     connect(perspectiveYSlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspective(int)));
 
     perspectiveZSlider = new QSlider(Qt::Horizontal, this);
-    perspectiveZSlider->setMinimum(0);
-    perspectiveZSlider->setMaximum(100);
+    perspectiveZSlider->setMinimum(50);
+    perspectiveZSlider->setMaximum(150);
     perspectiveZSlider->setFixedSize(200, 20);
     perspectiveZSlider->setValue(100);
     connect(perspectiveZSlider, SIGNAL(valueChanged(int)), this, SLOT(processPerspective(int)));

@@ -85,27 +85,24 @@ void ImageEditor::rotation(int value) {
 }
 
 void ImageEditor::perspective(int xValue, int yValue, int zValue) {
-    double t = xValue / 100.0, w = srcImage->width(), h = srcImage->height();
-    t /= w;
-    //QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
-    QTransform trans(1, 0, t, 0, 1, 0, 0, 0, 1);
+    double w = srcImage->width(), h = srcImage->height();
+    double m = max(w, h);
+    double tx = xValue * 3.1415926 / 180.0, ty = yValue * 3.1415926 / 180.0;
+    double zv = (zValue - 100.0) / 100.0 * m;
+    double A = -sin(ty) / m, B = -sin(tx) / m;
+    double C = 1 + w*sin(ty)/2/m + h*sin(tx)/2/m - zv/m;
+    double m11 = cos(ty) + w*A/2, m21 = w*B/2;
+    double m12 = h*A/2, m22 = cos(tx) + h*B/2;
+    double m31 = w*C/2 - w*cos(ty)/2, m32 = h*C/2 - h*cos(tx)/2;
+    if (A == 0 && B == 0) {
+        QTransform trans(m11/C, 0, 0, 0, m22/C, 0, 0, 0, 1);
+        *dstImage = srcImage->transformed(trans);
+    } else {
+        QTransform trans(m11, m12, A, m21, m22, B, m31, m32, C);
+        *dstImage = srcImage->transformed(trans);
+    }
 
-    *dstImage = srcImage->transformed(trans);
 }
-
-//void ImageEditor::perspectiveY(int value) {
-//    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
-//    t /= w;
-//    QTransform trans(1, 0, 0, 0, 1, t, 0, 0, 1);
-
-//    *dstImage = srcImage->transformed(trans);
-//}
-
-//void ImageEditor::perspectiveZ(int value) {
-//    double t = value / 100.0, w = srcImage->width(), h = srcImage->height();
-//    QTransform trans(t, 0, 0, 0, t, 0, w*(1-t)/2, h*(1-t)/2, 1);
-//    *dstImage = srcImage->transformed(trans);
-//}
 
 void ImageEditor::haze() {
     int w = srcImage->width(), h = srcImage->height();
