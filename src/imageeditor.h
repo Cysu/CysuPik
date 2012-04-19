@@ -5,6 +5,7 @@
 #include <QColor>
 #include <iostream>
 #include <cmath>
+#include <ctime>
 #include "utils.h"
 #include "const.h"
 
@@ -29,6 +30,13 @@ public:
     void scaling(int hValue, int vValue);
     void rotation(int value);
     void perspective(int xValue, int yValue, int zValue);
+    void erosion();
+    void dilation();
+    void openOpr();
+    void closeOpr();
+    void thinning();
+    void neighborAve(int value);
+    void neighborMed(int value);
     void haze();
 
 private:

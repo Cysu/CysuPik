@@ -27,6 +27,8 @@ private slots:
     void displayScalingPanel();
     void displayRotationPanel();
     void displayPerspectivePanel();
+    void displayNeighborAvePanel();
+    void displayNeighborMedPanel();
 
     void processAntiColor();
     void processThreshold(int value);
@@ -36,6 +38,13 @@ private slots:
     void processScaling(int value);
     void processRotation(int value);
     void processPerspective(int value);
+    void processErosion();
+    void processDilation();
+    void processOpenOpr();
+    void processCloseOpr();
+    void processThinning();
+    void processNeighborAve(int value);
+    void processNeighborMed(int value);
     void processHaze();
 
 protected:
@@ -60,6 +69,8 @@ private:
     FloatPanel* scalingPanel;
     FloatPanel* rotationPanel;
     FloatPanel* perspectivePanel;
+    FloatPanel* neighborAvePanel;
+    FloatPanel* neighborMedPanel;
 
     QSlider* thresholdSlider;
     QSlider* rotationSlider;
@@ -68,6 +79,8 @@ private:
     QSlider* perspectiveXSlider;
     QSlider* perspectiveYSlider;
     QSlider* perspectiveZSlider;
+    QSlider* neighborAveSlider;
+    QSlider* neighborMedSlider;
 
     QAction* openAct;
     QAction* undoAct;
@@ -80,6 +93,13 @@ private:
     QAction* scalingAct;
     QAction* rotationAct;
     QAction* perspectiveAct;
+    QAction* erosionAct;
+    QAction* dilationAct;
+    QAction* openOprAct;
+    QAction* closeOprAct;
+    QAction* thinningAct;
+    QAction* neighborAveAct;
+    QAction* neighborMedAct;
     QAction* hazeAct;
 
     QMenu* fileMenu;
@@ -87,6 +107,8 @@ private:
     QMenu* processMenu;
     QMenu* pointOperationMenu;
     QMenu* geoOperationMenu;
+    QMenu* morphOperationMenu;
+    QMenu* neighborOperationMenu;
     QMenu* otherOperationMenu;
 
     void clearStack();

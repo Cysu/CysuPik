@@ -36,6 +36,8 @@ void MainWindow::createPanels() {
     scalingPanel = NULL;
     rotationPanel = NULL;
     perspectivePanel = NULL;
+    neighborAvePanel = NULL;
+    neighborMedPanel = NULL;
 
     thresholdSlider = NULL;
     rotationSlider = NULL;
@@ -44,6 +46,8 @@ void MainWindow::createPanels() {
     perspectiveXSlider = NULL;
     perspectiveYSlider = NULL;
     perspectiveZSlider = NULL;
+    neighborAveSlider = NULL;
+    neighborMedSlider = NULL;
 }
 
 void MainWindow::createActions() {
@@ -58,7 +62,14 @@ void MainWindow::createActions() {
     CREATE_ACTION(scalingAct, "Scaling", "Ctrl+S", displayScalingPanel);
     CREATE_ACTION(rotationAct, "Rotation", "Ctrl+R", displayRotationPanel);
     CREATE_ACTION(perspectiveAct, "Perspective", "Ctrl+P", displayPerspectivePanel);
-    CREATE_ACTION(hazeAct, "Haze", "Ctrl+E", processHaze);
+    CREATE_ACTION(erosionAct, "Erosion", "Ctrl+E", processErosion);
+    CREATE_ACTION(dilationAct, "Dilation", "Ctrl+D", processDilation);
+    CREATE_ACTION(openOprAct, "Open Operation", "Ctrl+Q", processOpenOpr);
+    CREATE_ACTION(closeOprAct, "Close Operation", "Ctrl+W", processCloseOpr);
+    CREATE_ACTION(thinningAct, "Thinning", "Ctrl+T", processThinning);
+    CREATE_ACTION(neighborAveAct, "Neighborhood Averaging", "Ctrl+N", displayNeighborAvePanel);
+    CREATE_ACTION(neighborMedAct, "Neighborhood Median", "Ctrl+M", displayNeighborMedPanel);
+    CREATE_ACTION(hazeAct, "Haze", "", processHaze);
 }
 
 void MainWindow::createMenus() {
@@ -74,12 +85,21 @@ void MainWindow::createMenus() {
     pointOperationMenu->addAction(antiColorAct);
     pointOperationMenu->addAction(thresholdAct);
     pointOperationMenu->addAction(histogramEqualizationAct);
-    geoOperationMenu = processMenu->addMenu(tr("&Geometric Operation"));
+    geoOperationMenu = processMenu->addMenu(tr("&Geometrical Operation"));
     geoOperationMenu->addAction(horizontalMirrorAct);
     geoOperationMenu->addAction(verticalMirrorAct);
     geoOperationMenu->addAction(scalingAct);
     geoOperationMenu->addAction(rotationAct);
     geoOperationMenu->addAction(perspectiveAct);
+    morphOperationMenu = processMenu->addMenu(tr("&Morphological Operation"));
+    morphOperationMenu->addAction(erosionAct);
+    morphOperationMenu->addAction(dilationAct);
+    morphOperationMenu->addAction(openOprAct);
+    morphOperationMenu->addAction(closeOprAct);
+    morphOperationMenu->addAction(thinningAct);
+    neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Averaging"));
+    neighborOperationMenu->addAction(neighborAveAct);
+    neighborOperationMenu->addAction(neighborMedAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
     otherOperationMenu->addAction(hazeAct);
 
@@ -255,6 +275,30 @@ void MainWindow::displayPerspectivePanel() {
     addDockWidget(Qt::TopDockWidgetArea, perspectivePanel);
 }
 
+void MainWindow::displayNeighborAvePanel() {
+    delete neighborAveSlider;
+    neighborAveSlider = new QSlider(Qt::Horizontal, this);
+    neighborAveSlider->setMinimum(0);
+    neighborAveSlider->setMaximum(5);
+    neighborAveSlider->setFixedSize(140, 20);
+    connect(neighborAveSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborAve(int)));
+    delete neighborAvePanel;
+    neighborAvePanel = new FloatPanel(tr("Neighborhood Averaging"), neighborAveSlider);
+    addDockWidget(Qt::TopDockWidgetArea, neighborAvePanel);
+}
+
+void MainWindow::displayNeighborMedPanel() {
+    delete neighborMedSlider;
+    neighborMedSlider = new QSlider(Qt::Horizontal, this);
+    neighborMedSlider->setMinimum(0);
+    neighborMedSlider->setMaximum(5);
+    neighborMedSlider->setFixedSize(140, 20);
+    connect(neighborMedSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborMed(int)));
+    delete neighborMedPanel;
+    neighborMedPanel = new FloatPanel(tr("Neighborhood Median"), neighborMedSlider);
+    addDockWidget(Qt::TopDockWidgetArea, neighborMedPanel);
+}
+
 void MainWindow::processAntiColor() {
     DO_ACTION(POINT_ANTICOLOR, antiColor());
 }
@@ -289,6 +333,34 @@ void MainWindow::processPerspective(int value) {
     DO_ACTION(GEOMETRICAL_PERSPECTIVE, perspective(xValue, yValue, zValue));
 }
 
+void MainWindow::processErosion() {
+    DO_ACTION(MORPHOLOGICAL_EROSION, erosion());
+}
+
+void MainWindow::processDilation() {
+    DO_ACTION(MORPHOLOGICAL_DILATION, dilation());
+}
+
+void MainWindow::processOpenOpr() {
+    DO_ACTION(MORPHOLOGICAL_OPEN, openOpr());
+}
+
+void MainWindow::processCloseOpr() {
+    DO_ACTION(MORPHOLOGICAL_CLOSE, closeOpr());
+}
+
+void MainWindow::processThinning() {
+    DO_ACTION(MORPHOLOGICAL_THINNING, thinning());
+}
+
+void MainWindow::processNeighborAve(int value) {
+    DO_ACTION(NEIGHBOR_AVERAGING, neighborAve(value));
+}
+
+void MainWindow::processNeighborMed(int value) {
+    DO_ACTION(NEIGHBOR_MEDIAN, neighborMed(value));
+}
+
 void MainWindow::processHaze() {
 }
 
@@ -315,7 +387,9 @@ bool MainWindow::isSlideAction(ACTION_TYPE type) {
     return (type == POINT_THRESHOLD ||
             type == GEOMETRICAL_ROTATION ||
             type == GEOMETRICAL_SCALING ||
-            type == GEOMETRICAL_PERSPECTIVE);
+            type == GEOMETRICAL_PERSPECTIVE ||
+            type == NEIGHBOR_AVERAGING ||
+            type == NEIGHBOR_MEDIAN);
 }
 
 void MainWindow::recordAct(ACTION_TYPE type) {

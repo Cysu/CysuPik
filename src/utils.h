@@ -3,7 +3,7 @@
 
 #define CREATE_ACTION(act, text, shortcut, func) \
     act = new QAction(tr(text), this); \
-    act->setShortcut(tr(shortcut)); \
+    if (shortcut != "") act->setShortcut(tr(shortcut)); \
     connect(act, SIGNAL(triggered()), this, SLOT(func()));
 
 #define DO_ACTION(act, func) \

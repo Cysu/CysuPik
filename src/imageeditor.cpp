@@ -28,7 +28,7 @@ void ImageEditor::threshold(int value) {
     for (int i = 0; i < dstImage->width(); i ++)
         for (int j = 0; j < dstImage->height(); j ++) {
             int g = qGray(dstImage->pixel(i, j));
-            if (g > value) dstImage->setPixel(i, j, 0);
+            if (g < value) dstImage->setPixel(i, j, 0);
             else dstImage->setPixel(i, j, 255);
         }
 }
@@ -102,6 +102,93 @@ void ImageEditor::perspective(int xValue, int yValue, int zValue) {
         *dstImage = srcImage->transformed(trans);
     }
 
+}
+
+void ImageEditor::erosion() {
+    histogramEqualization();
+    threshold(128);
+    int w = dstImage->width(), h = dstImage->height();
+    QImage tmp = dstImage->copy(0, 0, w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            if (qGray(tmp.pixel(i, j)) == 0) continue;
+            for (int dx = -1; dx <= 1; dx ++)
+                for (int dy = -1; dy <= 1; dy ++)
+                    if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < h)
+                        if (qGray(tmp.pixel(i+dx, j+dy)) == 0) goto ero;
+            continue;
+        ero:
+            dstImage->setPixel(i, j, 0);
+        }
+}
+
+void ImageEditor::dilation() {
+    histogramEqualization();
+    threshold(128);
+    int w = dstImage->width(), h = dstImage->height();
+    QImage tmp = dstImage->copy(0, 0, w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            if (qGray(tmp.pixel(i, j)) == 255) continue;
+            for (int dx = -1; dx <= 1; dx ++)
+                for (int dy = -1; dy <= 1; dy ++)
+                    if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < h)
+                        if (qGray(tmp.pixel(i+dx, j+dy)) == 255) goto ero;
+            continue;
+        ero:
+            dstImage->setPixel(i, j, 255);
+        }
+}
+
+void ImageEditor::openOpr() {
+    erosion();
+    dilation();    
+}
+
+void ImageEditor::closeOpr() {
+    dilation();
+    erosion();
+}
+
+void ImageEditor::thinning() {
+    threshold(128);
+}
+
+void ImageEditor::neighborAve(int value) {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            int sum = 0, tot = 0;
+            for (int dx = -value; dx <= value; dx ++)
+                for (int dy = -value; dy <= value; dy ++)
+                    if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < w) {
+                        sum += qGray(srcImage->pixel(i+dx, j+dy));
+                        tot ++;
+                    }
+            dstImage->setPixel(i, j, sum / tot);
+        }
+}
+
+void ImageEditor::neighborMed(int value) {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            vector<int> tmp;
+            for (int dx = -value; dx <= value; dx ++)
+                for (int dy = -value; dy <= value; dy ++)
+                    if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < w)
+                        tmp.push_back(qGray(srcImage->pixel(i+dx, j+dy)));
+            for (int p = 0; p < tmp.size(); p ++)
+                for (int q = p + 1; q < tmp.size(); q ++)
+                    if (tmp[p] > tmp[q]) {
+                        int t = tmp[p];
+                        tmp[p] = tmp[q];
+                        tmp[q] = t;
+                    }
+            dstImage->setPixel(i, j, tmp[tmp.size() / 2]);
+        }
 }
 
 void ImageEditor::haze() {
