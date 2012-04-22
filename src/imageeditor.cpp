@@ -152,6 +152,51 @@ void ImageEditor::closeOpr() {
 
 void ImageEditor::thinning() {
     threshold(128);
+    int w = srcImage->width(), h = srcImage->height();
+    int dx[8] = {0,-1,-1,-1,0,1,1,1};
+    int dy[8] = {1,1,0,-1,-1,-1,0,1};
+    QImage tmp = dstImage->copy(0, 0, w, h);
+    while (true) {
+        bool change = false;
+        for (int i = 1; i < w-1; i ++)
+            for (int j = 1; j < h-1; j ++) {
+                if (BIN_VALUE(tmp, i, j) == 0) continue;
+                int a = abs(BIN_VALUE(tmp, i+dx[0], j+dy[0]) - BIN_VALUE(tmp, i+dx[7], j+dy[7]));
+                int s = BIN_VALUE(tmp, i+dx[7], j+dy[7]);
+                for (int k = 0; k < 7; k ++) {
+                    a += abs(BIN_VALUE(tmp, i+dx[k], j+dy[k]) - BIN_VALUE(tmp, i+dx[k+1], j+dy[k+1]));
+                    s += BIN_VALUE(tmp, i+dx[k], j+dy[k]);
+                }
+                if (a != 0 && a != 2 && a != 4) continue;
+                if (s == 1) continue;
+                if (a == 2 || a == 0) goto del;
+                if (BIN_VALUE(tmp, i+dx[0], j+dy[0]) == 0 || BIN_VALUE(tmp, i+dx[2], j+dy[2]) == 0 || (BIN_VALUE(tmp, i+dx[4], j+dy[4]) == 0 && BIN_VALUE(tmp, i+dx[6], j+dy[6]) == 0)) {
+                    if ((BIN_VALUE(tmp, i+dx[0], j+dy[0]) + BIN_VALUE(tmp, i+dx[6], j+dy[6]) == 2) &&
+                        (BIN_VALUE(tmp, i+dx[1], j+dy[1]) + BIN_VALUE(tmp, i+dx[5], j+dy[5]) >= 1) &&
+                        (BIN_VALUE(tmp, i+dx[2], j+dy[2]) + BIN_VALUE(tmp, i+dx[3], j+dy[3]) + BIN_VALUE(tmp, i+dx[4], j+dy[4]) + BIN_VALUE(tmp, i+dx[7], j+dy[7]) == 0))
+                        goto del;
+                    else if ((BIN_VALUE(tmp, i+dx[0], j+dy[0]) + BIN_VALUE(tmp, i+dx[2], j+dy[2]) == 2) &&
+                             (BIN_VALUE(tmp, i+dx[3], j+dy[3]) + BIN_VALUE(tmp, i+dx[7], j+dy[7]) >= 1) &&
+                             (BIN_VALUE(tmp, i+dx[1], j+dy[1]) + BIN_VALUE(tmp, i+dx[4], j+dy[4]) + BIN_VALUE(tmp, i+dx[5], j+dy[5]) + BIN_VALUE(tmp, i+dx[6], j+dy[6]) == 0))
+                        goto del;
+                } else if (BIN_VALUE(tmp, i+dx[4], j+dy[4]) == 0 || BIN_VALUE(tmp, i+dx[6], j+dy[6]) == 0 || (BIN_VALUE(tmp, i+dx[0], j+dy[0]) == 0 && BIN_VALUE(tmp, i+dx[2], j+dy[2]) == 0)) {
+                    if ((BIN_VALUE(tmp, i+dx[4], j+dy[4]) + BIN_VALUE(tmp, i+dx[2], j+dy[2]) == 2) &&
+                        (BIN_VALUE(tmp, i+dx[1], j+dy[1]) + BIN_VALUE(tmp, i+dx[5], j+dy[5]) >= 1) &&
+                        (BIN_VALUE(tmp, i+dx[0], j+dy[0]) + BIN_VALUE(tmp, i+dx[3], j+dy[3]) + BIN_VALUE(tmp, i+dx[6], j+dy[6]) + BIN_VALUE(tmp, i+dx[7], j+dy[7]) == 0))
+                        goto del;
+                    else if ((BIN_VALUE(tmp, i+dx[6], j+dy[6]) + BIN_VALUE(tmp, i+dx[4], j+dy[4]) == 2) &&
+                             (BIN_VALUE(tmp, i+dx[3], j+dy[3]) + BIN_VALUE(tmp, i+dx[7], j+dy[7]) >= 1) &&
+                             (BIN_VALUE(tmp, i+dx[1], j+dy[1]) + BIN_VALUE(tmp, i+dx[0], j+dy[0]) + BIN_VALUE(tmp, i+dx[5], j+dy[5]) + BIN_VALUE(tmp, i+dx[2], j+dy[2]) == 0))
+                        goto del;
+                }
+                continue;
+            del:
+                change = true;
+                tmp.setPixel(i, j, 0);
+            }
+        if (!change) break;
+    }
+    *dstImage = tmp.copy(0, 0, w, h);
 }
 
 void ImageEditor::neighborAve(int value) {
@@ -180,14 +225,62 @@ void ImageEditor::neighborMed(int value) {
                 for (int dy = -value; dy <= value; dy ++)
                     if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < w)
                         tmp.push_back(qGray(srcImage->pixel(i+dx, j+dy)));
-            for (int p = 0; p < tmp.size(); p ++)
-                for (int q = p + 1; q < tmp.size(); q ++)
-                    if (tmp[p] > tmp[q]) {
-                        int t = tmp[p];
-                        tmp[p] = tmp[q];
-                        tmp[q] = t;
-                    }
+            sort(tmp, 0, tmp.size() - 1);
             dstImage->setPixel(i, j, tmp[tmp.size() / 2]);
+        }
+}
+
+void ImageEditor::neighborGaussian(int r, double s) {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    double ker[2*r+1][2*r+1], tot = 0;
+    for (int i = 0; i <= 2*r; i ++)
+        for (int j = 0; j <= 2*r; j ++) {
+            ker[i][j] = exp(-(SQR(i-r)+SQR(j-r)) * 1.0 / (2*SQR(s)));
+            tot += ker[i][j];
+        }
+    for (int i = r; i < w - r; i ++)
+        for (int j = r; j < h - r; j ++) {
+            double sum = 0;
+            for (int dx = -r; dx <= r; dx ++)
+                for (int dy = -r; dy <= r; dy ++)
+                    sum += qGray(srcImage->pixel(i+dx, j+dy)) * ker[dx+r][dy+r];
+            sum /= tot;
+            dstImage->setPixel(i, j, (int)sum);
+        }
+}
+
+void ImageEditor::sobel() {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    int ker1[3][3] = {{-1,0,1}, {-2,0,2}, {-1,0,1}};
+    int ker2[3][3] = {{-1,-2,-1}, {0,0,0}, {1,2,1}};
+    for (int i = 1; i < w-1; i ++)
+        for (int j = 1; j < h-1; j ++) {
+            int sum1 = 0, sum2 = 0;
+            for (int dx = -1; dx <= 1; dx ++)
+                for (int dy = -1; dy <= 1; dy ++) {
+                    sum1 += qGray(srcImage->pixel(i+dx, j+dy)) * ker1[dx+1][dy+1];
+                    sum2 += qGray(srcImage->pixel(i+dx, j+dy)) * ker2[dx+1][dy+1];
+                }
+            dstImage->setPixel(i, j, min(255, abs(sum1)+abs(sum2)));
+        }
+}
+
+void ImageEditor::roberts() {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    int ker1[2][2] = {{0,1}, {-1,0}};
+    int ker2[2][2] = {{1,0}, {0,-1}};
+    for (int i = 0; i < w-1; i ++)
+        for (int j = 0; j < h-1; j ++) {
+            int sum1 = 0, sum2 = 0;
+            for (int dx = 0; dx <= 1; dx ++)
+                for (int dy = 0; dy <= 1; dy ++) {
+                    sum1 += qGray(srcImage->pixel(i+dx, j+dy)) * ker1[dx][dy];
+                    sum2 += qGray(srcImage->pixel(i+dx, j+dy)) * ker2[dx][dy];
+                }
+            dstImage->setPixel(i, j, min(255, abs(sum1)+abs(sum2)));
         }
 }
 
@@ -266,6 +359,23 @@ void ImageEditor::haze() {
             c.setRgb(r, g, b);
             dstImage->setPixel(i, j, c.rgb());
         }*/
+}
+
+void ImageEditor::sort(vector<int>& a, int l, int r) {
+    int i = l, j = r, x = a[(l+r) >> 1];
+    while (i <= j) {
+        while (a[i] < x) i ++;
+        while (a[j] > x) j --;
+        if (i <= j) {
+            int t = a[i];
+            a[i] = a[j];
+            a[j] = t;
+            i ++;
+            j --;
+        }
+    }
+    if (l < j) sort(a, l, j);
+    if (i < r) sort(a, i, r);
 }
 
 void ImageEditor::floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD) {

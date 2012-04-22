@@ -11,4 +11,8 @@
     imageEditor.func; \
     afterAct(act);
 
+#define SQR(a) ((a) * (a))
+
+#define BIN_VALUE(img, i, j) (qGray(img.pixel(i,j))/255)
+
 #endif // UTILS_H

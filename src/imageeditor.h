@@ -37,12 +37,16 @@ public:
     void thinning();
     void neighborAve(int value);
     void neighborMed(int value);
+    void neighborGaussian(int r, double s);
+    void sobel();
+    void roberts();
     void haze();
 
 private:
     QImage* srcImage;
     QImage* dstImage;
 
+    void sort(vector<int>& a, int l, int r);
     void floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD);
 };
 

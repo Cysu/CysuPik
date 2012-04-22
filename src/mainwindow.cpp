@@ -38,6 +38,7 @@ void MainWindow::createPanels() {
     perspectivePanel = NULL;
     neighborAvePanel = NULL;
     neighborMedPanel = NULL;
+    neighborGaussianPanel = NULL;
 
     thresholdSlider = NULL;
     rotationSlider = NULL;
@@ -48,27 +49,32 @@ void MainWindow::createPanels() {
     perspectiveZSlider = NULL;
     neighborAveSlider = NULL;
     neighborMedSlider = NULL;
+    neighborGaussianRSlider = NULL;
+    neighborGaussianSSlider = NULL;
 }
 
 void MainWindow::createActions() {
     CREATE_ACTION(openAct, "&Open", "Ctrl+O", open);
     CREATE_ACTION(undoAct, "&Undo", "Ctrl+Z", undo);
     CREATE_ACTION(redoAct, "&Redo", "Ctrl+Y", redo);
-    CREATE_ACTION(antiColorAct, "Anti Color", "Ctrl+I", processAntiColor);
+    CREATE_ACTION(antiColorAct, "Anti Color", "", processAntiColor);
     CREATE_ACTION(thresholdAct, "Threshold", "Ctrl+H", displayThresholdPanel);
     CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+B", processHistogramEqualization);
-    CREATE_ACTION(horizontalMirrorAct, "Horizontal Mirror", "Ctrl+L", processHorizontalMirror);
-    CREATE_ACTION(verticalMirrorAct, "Vertical Mirror", "Ctrl+K", processVerticalMirror);
-    CREATE_ACTION(scalingAct, "Scaling", "Ctrl+S", displayScalingPanel);
-    CREATE_ACTION(rotationAct, "Rotation", "Ctrl+R", displayRotationPanel);
-    CREATE_ACTION(perspectiveAct, "Perspective", "Ctrl+P", displayPerspectivePanel);
+    CREATE_ACTION(horizontalMirrorAct, "Horizontal Mirror", "", processHorizontalMirror);
+    CREATE_ACTION(verticalMirrorAct, "Vertical Mirror", "", processVerticalMirror);
+    CREATE_ACTION(scalingAct, "Scaling", "", displayScalingPanel);
+    CREATE_ACTION(rotationAct, "Rotation", "", displayRotationPanel);
+    CREATE_ACTION(perspectiveAct, "Perspective", "", displayPerspectivePanel);
     CREATE_ACTION(erosionAct, "Erosion", "Ctrl+E", processErosion);
     CREATE_ACTION(dilationAct, "Dilation", "Ctrl+D", processDilation);
-    CREATE_ACTION(openOprAct, "Open Operation", "Ctrl+Q", processOpenOpr);
-    CREATE_ACTION(closeOprAct, "Close Operation", "Ctrl+W", processCloseOpr);
+    CREATE_ACTION(openOprAct, "Open Operation", "", processOpenOpr);
+    CREATE_ACTION(closeOprAct, "Close Operation", "", processCloseOpr);
     CREATE_ACTION(thinningAct, "Thinning", "Ctrl+T", processThinning);
-    CREATE_ACTION(neighborAveAct, "Neighborhood Averaging", "Ctrl+N", displayNeighborAvePanel);
-    CREATE_ACTION(neighborMedAct, "Neighborhood Median", "Ctrl+M", displayNeighborMedPanel);
+    CREATE_ACTION(neighborAveAct, "Neighborhood Averaging", "", displayNeighborAvePanel);
+    CREATE_ACTION(neighborMedAct, "Neighborhood Median", "", displayNeighborMedPanel);
+    CREATE_ACTION(neighborGaussianAct, "Neighborhood Gaussian", "Ctrl+G", displayNeighborGaussianPanel);
+    CREATE_ACTION(sobelAct, "Sobel", "Ctrl+S", processSobel);
+    CREATE_ACTION(robertsAct, "Roberts", "Ctrl+R", processRoberts);
     CREATE_ACTION(hazeAct, "Haze", "", processHaze);
 }
 
@@ -100,6 +106,9 @@ void MainWindow::createMenus() {
     neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Averaging"));
     neighborOperationMenu->addAction(neighborAveAct);
     neighborOperationMenu->addAction(neighborMedAct);
+    neighborOperationMenu->addAction(neighborGaussianAct);
+    neighborOperationMenu->addAction(sobelAct);
+    neighborOperationMenu->addAction(robertsAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
     otherOperationMenu->addAction(hazeAct);
 
@@ -299,6 +308,36 @@ void MainWindow::displayNeighborMedPanel() {
     addDockWidget(Qt::TopDockWidgetArea, neighborMedPanel);
 }
 
+void MainWindow::displayNeighborGaussianPanel() {
+    delete neighborGaussianRSlider;
+    neighborGaussianRSlider = new QSlider(Qt::Horizontal, this);
+    neighborGaussianRSlider->setMinimum(0);
+    neighborGaussianRSlider->setMaximum(5);
+    neighborGaussianRSlider->setFixedSize(140, 20);
+    connect(neighborGaussianRSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborGaussian(int)));
+
+    delete neighborGaussianSSlider;
+    neighborGaussianSSlider = new QSlider(Qt::Horizontal, this);
+    neighborGaussianSSlider->setMinimum(1);
+    neighborGaussianSSlider->setMaximum(500);
+    neighborGaussianSSlider->setFixedSize(140, 20);
+    connect(neighborGaussianSSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborGaussian(int)));
+
+    QWidget* widget = new QWidget;
+    QGridLayout* layout = new QGridLayout;
+    QLabel* gaussianRLabel = new QLabel(tr("R"));
+    QLabel* gaussianSLabel = new QLabel(tr("S"));
+    layout->addWidget(gaussianRLabel, 0, 0);
+    layout->addWidget(neighborGaussianRSlider, 0, 1);
+    layout->addWidget(gaussianSLabel, 1, 0);
+    layout->addWidget(neighborGaussianSSlider, 1, 1);
+    widget->setLayout(layout);
+
+    delete neighborGaussianPanel;
+    neighborGaussianPanel = new FloatPanel(tr("Neighborhood Gaussian"), widget);
+    addDockWidget(Qt::TopDockWidgetArea, neighborGaussianPanel);
+}
+
 void MainWindow::processAntiColor() {
     DO_ACTION(POINT_ANTICOLOR, antiColor());
 }
@@ -361,6 +400,20 @@ void MainWindow::processNeighborMed(int value) {
     DO_ACTION(NEIGHBOR_MEDIAN, neighborMed(value));
 }
 
+void MainWindow::processNeighborGaussian(int value) {
+    int r = neighborGaussianRSlider->value();
+    double s = neighborGaussianSSlider->value() * 1.0 / 100.0;
+    DO_ACTION(NEIGHBOR_GAUSSIAN, neighborGaussian(r, s));
+}
+
+void MainWindow::processSobel() {
+    DO_ACTION(NEIGHBOR_SOBEL, sobel());
+}
+
+void MainWindow::processRoberts() {
+    DO_ACTION(NEIGHBOR_ROBERT, roberts());
+}
+
 void MainWindow::processHaze() {
 }
 
@@ -389,7 +442,8 @@ bool MainWindow::isSlideAction(ACTION_TYPE type) {
             type == GEOMETRICAL_SCALING ||
             type == GEOMETRICAL_PERSPECTIVE ||
             type == NEIGHBOR_AVERAGING ||
-            type == NEIGHBOR_MEDIAN);
+            type == NEIGHBOR_MEDIAN ||
+            type == NEIGHBOR_GAUSSIAN);
 }
 
 void MainWindow::recordAct(ACTION_TYPE type) {
