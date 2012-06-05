@@ -18,6 +18,18 @@ void ImageEditor::setImage(QImage* srcImage, QImage* dstImage) {
     this->dstImage = dstImage;
 }
 
+void ImageEditor::convertToGrayscale() {
+    *dstImage = srcImage->convertToFormat(QImage::Format_Indexed8);
+    QVector<QRgb> colors;
+    for (int i = 0; i < 256; i ++) colors.push_back(QColor(i,i,i).rgb());
+    dstImage->setColorTable(colors);
+
+    int w = srcImage->width(), h = srcImage->height();
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++)
+            dstImage->setPixel(i, j, qGray(srcImage->pixel(i, j)));
+}
+
 void ImageEditor::antiColor() {
     *dstImage = srcImage->copy(0, 0, srcImage->width(), srcImage->height());
     dstImage->invertPixels();
@@ -284,6 +296,116 @@ void ImageEditor::roberts() {
         }
 }
 
+void ImageEditor::canny() {
+    int w = srcImage->width(), h = srcImage->height();
+    QImage* tmpImage = new QImage;
+    *tmpImage = srcImage->copy(0, 0, w, h);
+    *dstImage = srcImage->copy(0, 0, w, h);
+
+    // Gaussian filter
+    int r = 2;
+    double s = 1.4;
+    double ker[2*r+1][2*r+1], tot = 0;
+    for (int i = 0; i <= 2*r; i ++)
+        for (int j = 0; j <= 2*r; j ++) {
+            ker[i][j] = exp(-(SQR(i-r)+SQR(j-r)) * 1.0 / (2*SQR(s)));
+            tot += ker[i][j];
+        }
+
+    for (int i = r; i < w - r; i ++)
+        for (int j = r; j < h - r; j ++) {
+            double sum = 0;
+            for (int dx = -r; dx <= r; dx ++)
+                for (int dy = -r; dy <= r; dy ++)
+                    sum += qGray(srcImage->pixel(i+dx, j+dy)) * ker[dx+r][dy+r];
+            sum /= tot;
+            tmpImage->setPixel(i, j, (int)sum);
+        }
+
+    // Sobel to find gradients
+    int ker1[3][3] = {{-1,0,1}, {-2,0,2}, {-1,0,1}};
+    int ker2[3][3] = {{1,2,1}, {0,0,0}, {-1,-2,-1}};
+
+    int* gx = new int[w*h];
+    int* gy = new int[w*h];
+    double* theta = new double[w*h];
+    memset(gx, 0, w*h*sizeof(int));
+    memset(gy, 0, w*h*sizeof(int));
+
+    int max_v = 0, min_v = 0x7fffffff;
+
+    for (int j = 1; j < h-1; j ++)
+        for (int i = 1; i < w-1; i ++) {
+            int k = j*w+i;
+            for (int dx = -1; dx <= 1; dx ++)
+                for (int dy = -1; dy <= 1; dy ++) {
+                    gx[k] += qGray(tmpImage->pixel(i+dx, j+dy)) * ker1[dy+1][dx+1];
+                    gy[k] += qGray(tmpImage->pixel(i+dx, j+dy)) * ker2[dy+1][dx+1];
+                }
+            if (gx[k] == 0 && gy[k] == 0) theta[k] = 0;
+            else theta[k] = atan2(gy[k], gx[k]) * 180 / 3.14159265;
+            if (max_v < abs(gx[k]) + abs(gy[k])) max_v = abs(gx[k]) + abs(gy[k]);
+            if (min_v > abs(gx[k]) + abs(gy[k])) min_v = abs(gx[k]) + abs(gy[k]);
+        }
+
+    double nf = (max_v - min_v) / 255.0;
+    for (int j = 1; j < h-1; j ++)
+        for (int i = 1; i < w-1; i ++) {
+            int k = j*w+i;
+            dstImage->setPixel(i, j, (int)((abs(gx[k])+abs(gy[k])-min_v)/nf+0.5));
+        }
+
+    *tmpImage = dstImage->copy(0, 0, w, h);
+
+    // Non-maximum suppression
+    for (int j = 1; j < h-1; j ++) {
+        for (int i = 1; i < w-1; i ++) {
+            int k = j*w+i;
+            int t = qGray(tmpImage->pixel(i, j));
+            if (fabs(theta[k]) < 22.5 || fabs(theta[k]) >= 157.5) {
+                int n1 = qGray(tmpImage->pixel(i-1, j));
+                int n2 = qGray(tmpImage->pixel(i+1, j));
+                if (t <= n1 || t <= n2) dstImage->setPixel(i, j, 0);
+            } else if ((22.5 <= theta[k] && theta[k] < 67.5) || (-157.5 <= theta[k] && theta[k] < -112.5)) {
+                int n1 = qGray(tmpImage->pixel(i+1, j-1));
+                int n2 = qGray(tmpImage->pixel(i-1, j+1));
+                if (t <= n1 || t <= n2) dstImage->setPixel(i, j, 0);
+            } else if (67.5 <= fabs(theta[k]) && fabs(theta[k]) < 112.5) {
+                int n1 = qGray(tmpImage->pixel(i, j+1));
+                int n2 = qGray(tmpImage->pixel(i, j-1));
+                if (t <= n1 || t <= n2) dstImage->setPixel(i, j, 0);
+            } else {
+                int n1 = qGray(tmpImage->pixel(i-1, j-1));
+                int n2 = qGray(tmpImage->pixel(i+1, j+1));
+                if (t <= n1 || t <= n2) dstImage->setPixel(i, j, 0);
+            }
+        }
+    }
+
+    // Thresholding
+    int* mark = new int[w*h];
+    memset(mark, 0, w*h*sizeof(int));
+    int th = 30, tl = 10;
+    for (int j = 1; j < h-1; j ++)
+        for (int i = 1; i < w-1; i ++) {
+            int k = j*w+i;
+            if (mark[k]) continue;
+            int t = qGray(dstImage->pixel(i, j));
+            if (t > th)
+                __canny_threshold(i, j, mark, th, tl);
+            else
+                mark[k] = 1;
+        }
+    for (int j = 0; j < h; j ++)
+        for (int i = 0; i < w; i ++) {
+            int k = j*w+i;
+            if (mark[k] != 2)
+                dstImage->setPixel(i, j, 0);
+            else if (mark[k] == 2)
+                dstImage->setPixel(i, j, 255);
+        }
+}
+
 void ImageEditor::haze() {
     int w = srcImage->width(), h = srcImage->height();
     double** t = new double*[w];
@@ -394,4 +516,21 @@ void ImageEditor::floodfill(int x, int y, double** t, int** darkChannel, bool** 
                         floodfill(x+dx, y+dy, t, darkChannel, mark, maxD);
                     }
                 }
+}
+
+void ImageEditor::__canny_threshold(int x, int y, int *&mark, int th, int tl) {
+    int k = y*dstImage->width() + x;
+    if (mark[k]) return;
+
+    int t = qGray(dstImage->pixel(x, y));
+    if (t < tl) {
+        mark[k] = 1;
+        return;
+    }
+
+    mark[k] = 2;
+    if (x > 0) __canny_threshold(x-1, y, mark, th, tl);
+    if (x < dstImage->width()-1) __canny_threshold(x+1, y, mark, th, tl);
+    if (y > 0) __canny_threshold(x, y-1, mark, th, tl);
+    if (y < dstImage->height()-1) __canny_threshold(x, y+1, mark, th, tl);
 }

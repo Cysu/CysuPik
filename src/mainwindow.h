@@ -31,6 +31,7 @@ private slots:
     void displayNeighborMedPanel();
     void displayNeighborGaussianPanel();
 
+    void processConvertToGrayscale();
     void processAntiColor();
     void processThreshold(int value);
     void processHistogramEqualization();
@@ -49,6 +50,7 @@ private slots:
     void processNeighborGaussian(int value);
     void processSobel();
     void processRoberts();
+    void processCanny();
     void processHaze();
 
 protected:
@@ -92,6 +94,8 @@ private:
     QAction* openAct;
     QAction* undoAct;
     QAction* redoAct;
+    QAction* showHistogramAct;
+    QAction* convertToGrayscaleAct;
     QAction* antiColorAct;
     QAction* thresholdAct;
     QAction* histogramEqualizationAct;
@@ -110,6 +114,7 @@ private:
     QAction* neighborGaussianAct;
     QAction* sobelAct;
     QAction* robertsAct;
+    QAction* cannyAct;
     QAction* hazeAct;
 
     QMenu* fileMenu;

@@ -22,6 +22,7 @@ public:
 
     void setImage(QImage* srcImage, QImage* dstImage);
 
+    void convertToGrayscale();
     void antiColor();
     void threshold(int value);
     void histogramEqualization();
@@ -40,6 +41,7 @@ public:
     void neighborGaussian(int r, double s);
     void sobel();
     void roberts();
+    void canny();
     void haze();
 
 private:
@@ -48,6 +50,7 @@ private:
 
     void sort(vector<int>& a, int l, int r);
     void floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD);
+    void __canny_threshold(int x, int y, int* &mark, int th, int tl);
 };
 
 #endif // IMAGEEDITOR_H

@@ -57,6 +57,8 @@ void MainWindow::createActions() {
     CREATE_ACTION(openAct, "&Open", "Ctrl+O", open);
     CREATE_ACTION(undoAct, "&Undo", "Ctrl+Z", undo);
     CREATE_ACTION(redoAct, "&Redo", "Ctrl+Y", redo);
+    CREATE_ACTION(showHistogramAct, "Show Histogram", "", displayHistogramPanel);
+    CREATE_ACTION(convertToGrayscaleAct, "Convert To Grayscale", "", processConvertToGrayscale);
     CREATE_ACTION(antiColorAct, "Anti Color", "", processAntiColor);
     CREATE_ACTION(thresholdAct, "Threshold", "Ctrl+H", displayThresholdPanel);
     CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+B", processHistogramEqualization);
@@ -75,6 +77,7 @@ void MainWindow::createActions() {
     CREATE_ACTION(neighborGaussianAct, "Neighborhood Gaussian", "Ctrl+G", displayNeighborGaussianPanel);
     CREATE_ACTION(sobelAct, "Sobel", "Ctrl+S", processSobel);
     CREATE_ACTION(robertsAct, "Roberts", "Ctrl+R", processRoberts);
+    CREATE_ACTION(cannyAct, "Canny", "Ctrl+C", processCanny);
     CREATE_ACTION(hazeAct, "Haze", "", processHaze);
 }
 
@@ -88,6 +91,8 @@ void MainWindow::createMenus() {
 
     processMenu = new QMenu(tr("&Process"), this);
     pointOperationMenu = processMenu->addMenu(tr("&Point Operation"));
+    pointOperationMenu->addAction(showHistogramAct);
+    pointOperationMenu->addAction(convertToGrayscaleAct);
     pointOperationMenu->addAction(antiColorAct);
     pointOperationMenu->addAction(thresholdAct);
     pointOperationMenu->addAction(histogramEqualizationAct);
@@ -109,6 +114,7 @@ void MainWindow::createMenus() {
     neighborOperationMenu->addAction(neighborGaussianAct);
     neighborOperationMenu->addAction(sobelAct);
     neighborOperationMenu->addAction(robertsAct);
+    neighborOperationMenu->addAction(cannyAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
     otherOperationMenu->addAction(hazeAct);
 
@@ -159,7 +165,6 @@ void MainWindow::undo() {
     if (cntImageNum > 0) {
         imageLabel->setPixmap(QPixmap::fromImage(images[-- cntImageNum]));
         imageLabel->adjustSize();
-        displayHistogramPanel();
         lastActType = NOTHING;
         originImage = NULL;
         previewImage = NULL;
@@ -170,7 +175,6 @@ void MainWindow::redo() {
     if (cntImageNum < images.size() - 1) {
         imageLabel->setPixmap(QPixmap::fromImage(images[++ cntImageNum]));
         imageLabel->adjustSize();
-        displayHistogramPanel();
         lastActType = NOTHING;
         originImage = NULL;
         previewImage = NULL;
@@ -180,7 +184,7 @@ void MainWindow::redo() {
 void MainWindow::displayHistogramPanel(QImage* image) {
     int* tmpH = new int[256];
     if (image == NULL)
-        ImageEditor::getHistogram(&images[cntImageNum], tmpH);
+        ImageEditor::getHistogram(previewImage, tmpH);
     else
         ImageEditor::getHistogram(image, tmpH);
     delete histogramPanel;
@@ -197,7 +201,7 @@ void MainWindow::displayThresholdPanel() {
     connect(thresholdSlider, SIGNAL(valueChanged(int)), this, SLOT(processThreshold(int)));
     delete thresholdPanel;
     thresholdPanel = new FloatPanel(tr("Threshold"), thresholdSlider);
-    addDockWidget(Qt::TopDockWidgetArea, thresholdPanel);
+    addDockWidget(Qt::RightDockWidgetArea, thresholdPanel);
 }
 
 void MainWindow::displayScalingPanel() {
@@ -229,7 +233,7 @@ void MainWindow::displayScalingPanel() {
 
     delete scalingPanel;
     scalingPanel = new FloatPanel(tr("Scaling"), widget);
-    addDockWidget(Qt::TopDockWidgetArea, scalingPanel);
+    addDockWidget(Qt::RightDockWidgetArea, scalingPanel);
 }
 
 void MainWindow::displayRotationPanel() {
@@ -241,7 +245,7 @@ void MainWindow::displayRotationPanel() {
     connect(rotationSlider, SIGNAL(valueChanged(int)), this, SLOT(processRotation(int)));
     delete rotationPanel;
     rotationPanel = new FloatPanel(tr("Rotation"), rotationSlider);
-    addDockWidget(Qt::TopDockWidgetArea, rotationPanel);
+    addDockWidget(Qt::RightDockWidgetArea, rotationPanel);
 }
 
 void MainWindow::displayPerspectivePanel() {
@@ -281,7 +285,7 @@ void MainWindow::displayPerspectivePanel() {
 
     delete perspectivePanel;
     perspectivePanel = new FloatPanel(tr("Perspective"), widget);
-    addDockWidget(Qt::TopDockWidgetArea, perspectivePanel);
+    addDockWidget(Qt::RightDockWidgetArea, perspectivePanel);
 }
 
 void MainWindow::displayNeighborAvePanel() {
@@ -293,7 +297,7 @@ void MainWindow::displayNeighborAvePanel() {
     connect(neighborAveSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborAve(int)));
     delete neighborAvePanel;
     neighborAvePanel = new FloatPanel(tr("Neighborhood Averaging"), neighborAveSlider);
-    addDockWidget(Qt::TopDockWidgetArea, neighborAvePanel);
+    addDockWidget(Qt::RightDockWidgetArea, neighborAvePanel);
 }
 
 void MainWindow::displayNeighborMedPanel() {
@@ -305,7 +309,7 @@ void MainWindow::displayNeighborMedPanel() {
     connect(neighborMedSlider, SIGNAL(valueChanged(int)), this, SLOT(processNeighborMed(int)));
     delete neighborMedPanel;
     neighborMedPanel = new FloatPanel(tr("Neighborhood Median"), neighborMedSlider);
-    addDockWidget(Qt::TopDockWidgetArea, neighborMedPanel);
+    addDockWidget(Qt::RightDockWidgetArea, neighborMedPanel);
 }
 
 void MainWindow::displayNeighborGaussianPanel() {
@@ -335,7 +339,11 @@ void MainWindow::displayNeighborGaussianPanel() {
 
     delete neighborGaussianPanel;
     neighborGaussianPanel = new FloatPanel(tr("Neighborhood Gaussian"), widget);
-    addDockWidget(Qt::TopDockWidgetArea, neighborGaussianPanel);
+    addDockWidget(Qt::RightDockWidgetArea, neighborGaussianPanel);
+}
+
+void MainWindow::processConvertToGrayscale() {
+    DO_ACTION(POINT_CONVERTTOGRAYSCALE, convertToGrayscale());
 }
 
 void MainWindow::processAntiColor() {
@@ -414,6 +422,10 @@ void MainWindow::processRoberts() {
     DO_ACTION(NEIGHBOR_ROBERT, roberts());
 }
 
+void MainWindow::processCanny() {
+    DO_ACTION(NEIGHBOR_CANNY, canny());
+}
+
 void MainWindow::processHaze() {
 }
 
@@ -447,18 +459,15 @@ bool MainWindow::isSlideAction(ACTION_TYPE type) {
 }
 
 void MainWindow::recordAct(ACTION_TYPE type) {
-    //printf("%08x\n", type);
     if (type == lastActType && isSlideAction(type)) return;
     addPreview();
     originImage = &images[cntImageNum];
     previewImage = new QImage;
     lastActType = type;
     imageEditor.setImage(originImage, previewImage);
-    //cout << originImage << "," << previewImage << endl;
 }
 
 void MainWindow::afterAct(ACTION_TYPE type) {
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
     imageLabel->adjustSize();
-    displayHistogramPanel(previewImage);
 }
