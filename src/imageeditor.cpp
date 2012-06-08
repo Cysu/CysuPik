@@ -77,6 +77,42 @@ void ImageEditor::histogramEqualization() {
         }
 }
 
+void ImageEditor::add(QImage *image) {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    QImage tmp = image->scaled(w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            int g1 = qGray(srcImage->pixel(i, j));
+            int g2 = qGray(tmp.pixel(i, j));
+            dstImage->setPixel(i, j, min(255, g1+g2));
+        }
+}
+
+void ImageEditor::sub(QImage *image) {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    QImage tmp = image->scaled(w, h);
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            int g1 = qGray(srcImage->pixel(i, j));
+            int g2 = qGray(tmp.pixel(i, j));
+            dstImage->setPixel(i, j, max(0, g1-g2));
+        }
+}
+
+void ImageEditor::translation() {
+    int w = srcImage->width(), h = srcImage->height();
+    *dstImage = srcImage->copy(0, 0, w, h);
+    for (int j = 0; j < h; j ++) dstImage->setPixel(0, j, 0);
+    for (int i = 1; i < w; i ++)
+        for (int j = 0; j < h; j ++) {
+            int g1 = qGray(srcImage->pixel(i, j));
+            int g2 = qGray(srcImage->pixel(i-1, j));
+            dstImage->setPixel(i, j, max(0, g1-g2));
+        }
+}
+
 void ImageEditor::horizontalMirror() {
     *dstImage = srcImage->mirrored(true, false);
 }

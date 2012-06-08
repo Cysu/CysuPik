@@ -35,6 +35,9 @@ private slots:
     void processAntiColor();
     void processThreshold(int value);
     void processHistogramEqualization();
+    void processAddition();
+    void processSubtraction();
+    void processTranslation();
     void processHorizontalMirror();
     void processVerticalMirror();
     void processScaling(int value);
@@ -99,6 +102,9 @@ private:
     QAction* antiColorAct;
     QAction* thresholdAct;
     QAction* histogramEqualizationAct;
+    QAction* additionAct;
+    QAction* subtractionAct;
+    QAction* translationAct;
     QAction* horizontalMirrorAct;
     QAction* verticalMirrorAct;
     QAction* scalingAct;
@@ -121,6 +127,7 @@ private:
     QMenu* editMenu;
     QMenu* processMenu;
     QMenu* pointOperationMenu;
+    QMenu* algOperationMenu;
     QMenu* geoOperationMenu;
     QMenu* morphOperationMenu;
     QMenu* neighborOperationMenu;

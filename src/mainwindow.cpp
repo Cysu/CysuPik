@@ -62,6 +62,9 @@ void MainWindow::createActions() {
     CREATE_ACTION(antiColorAct, "Anti Color", "", processAntiColor);
     CREATE_ACTION(thresholdAct, "Threshold", "Ctrl+H", displayThresholdPanel);
     CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+B", processHistogramEqualization);
+    CREATE_ACTION(additionAct, "Addition", "", processAddition);
+    CREATE_ACTION(subtractionAct, "Subtraction", "", processSubtraction);
+    CREATE_ACTION(translationAct, "Translation", "", processTranslation);
     CREATE_ACTION(horizontalMirrorAct, "Horizontal Mirror", "", processHorizontalMirror);
     CREATE_ACTION(verticalMirrorAct, "Vertical Mirror", "", processVerticalMirror);
     CREATE_ACTION(scalingAct, "Scaling", "", displayScalingPanel);
@@ -96,6 +99,10 @@ void MainWindow::createMenus() {
     pointOperationMenu->addAction(antiColorAct);
     pointOperationMenu->addAction(thresholdAct);
     pointOperationMenu->addAction(histogramEqualizationAct);
+    algOperationMenu = processMenu->addMenu(tr("&Alegrabic Operation"));
+    algOperationMenu->addAction(additionAct);
+    algOperationMenu->addAction(subtractionAct);
+    algOperationMenu->addAction(translationAct);
     geoOperationMenu = processMenu->addMenu(tr("&Geometrical Operation"));
     geoOperationMenu->addAction(horizontalMirrorAct);
     geoOperationMenu->addAction(verticalMirrorAct);
@@ -356,6 +363,34 @@ void MainWindow::processThreshold(int value) {
 
 void MainWindow::processHistogramEqualization() {
     DO_ACTION(POINT_HISTOGRAMNORMALIZATION, histogramEqualization());
+}
+
+void MainWindow::processAddition() {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File to Add"), QDir::currentPath());
+    if (!fileName.isEmpty()) {
+        QImage* image = new QImage(fileName);
+        if (image->isNull()) {
+            QMessageBox::information(this, tr("Cysu Pic"), tr("Cannot load %1.").arg(fileName));
+            return;
+        }
+        DO_ACTION(ALGEBRAIC_ADDITION, add(image));
+    }
+}
+
+void MainWindow::processSubtraction() {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File to Subtract"), QDir::currentPath());
+    if (!fileName.isEmpty()) {
+        QImage* image = new QImage(fileName);
+        if (image->isNull()) {
+            QMessageBox::information(this, tr("Cysu Pic"), tr("Cannot load %1.").arg(fileName));
+            return;
+        }
+        DO_ACTION(ALGEBRAIC_SUBTRACTION, sub(image));
+    }
+}
+
+void MainWindow::processTranslation() {
+    DO_ACTION(ALGEBRAIC_TRANSLATION, translation());
 }
 
 void MainWindow::processHorizontalMirror() {

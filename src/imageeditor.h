@@ -26,6 +26,9 @@ public:
     void antiColor();
     void threshold(int value);
     void histogramEqualization();
+    void add(QImage* image);
+    void sub(QImage* image);
+    void translation();
     void horizontalMirror();
     void verticalMirror();
     void scaling(int hValue, int vValue);
