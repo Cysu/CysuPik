@@ -19,6 +19,7 @@ public:
 
 private slots:
     void open();
+    void saveas();
     void undo();
     void redo();
 
@@ -95,6 +96,7 @@ private:
     QSlider* neighborGaussianSSlider;
 
     QAction* openAct;
+    QAction* saveasAct;
     QAction* undoAct;
     QAction* redoAct;
     QAction* showHistogramAct;

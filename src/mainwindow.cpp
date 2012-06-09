@@ -55,13 +55,14 @@ void MainWindow::createPanels() {
 
 void MainWindow::createActions() {
     CREATE_ACTION(openAct, "&Open", "Ctrl+O", open);
+    CREATE_ACTION(saveasAct, "&Save As", "Ctrl+S", saveas);
     CREATE_ACTION(undoAct, "&Undo", "Ctrl+Z", undo);
     CREATE_ACTION(redoAct, "&Redo", "Ctrl+Y", redo);
     CREATE_ACTION(showHistogramAct, "Show Histogram", "", displayHistogramPanel);
-    CREATE_ACTION(convertToGrayscaleAct, "Convert To Grayscale", "", processConvertToGrayscale);
+    CREATE_ACTION(convertToGrayscaleAct, "Convert To Grayscale", "Ctrl+G", processConvertToGrayscale);
     CREATE_ACTION(antiColorAct, "Anti Color", "", processAntiColor);
-    CREATE_ACTION(thresholdAct, "Threshold", "Ctrl+H", displayThresholdPanel);
-    CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+B", processHistogramEqualization);
+    CREATE_ACTION(thresholdAct, "Threshold", "", displayThresholdPanel);
+    CREATE_ACTION(histogramEqualizationAct, "Histogram Equalization", "Ctrl+H", processHistogramEqualization);
     CREATE_ACTION(additionAct, "Addition", "", processAddition);
     CREATE_ACTION(subtractionAct, "Subtraction", "", processSubtraction);
     CREATE_ACTION(translationAct, "Translation", "", processTranslation);
@@ -70,23 +71,24 @@ void MainWindow::createActions() {
     CREATE_ACTION(scalingAct, "Scaling", "", displayScalingPanel);
     CREATE_ACTION(rotationAct, "Rotation", "", displayRotationPanel);
     CREATE_ACTION(perspectiveAct, "Perspective", "", displayPerspectivePanel);
-    CREATE_ACTION(erosionAct, "Erosion", "Ctrl+E", processErosion);
-    CREATE_ACTION(dilationAct, "Dilation", "Ctrl+D", processDilation);
+    CREATE_ACTION(erosionAct, "Erosion", "", processErosion);
+    CREATE_ACTION(dilationAct, "Dilation", "", processDilation);
     CREATE_ACTION(openOprAct, "Open Operation", "", processOpenOpr);
     CREATE_ACTION(closeOprAct, "Close Operation", "", processCloseOpr);
-    CREATE_ACTION(thinningAct, "Thinning", "Ctrl+T", processThinning);
+    CREATE_ACTION(thinningAct, "Thinning", "", processThinning);
     CREATE_ACTION(neighborAveAct, "Neighborhood Averaging", "", displayNeighborAvePanel);
     CREATE_ACTION(neighborMedAct, "Neighborhood Median", "", displayNeighborMedPanel);
-    CREATE_ACTION(neighborGaussianAct, "Neighborhood Gaussian", "Ctrl+G", displayNeighborGaussianPanel);
-    CREATE_ACTION(sobelAct, "Sobel", "Ctrl+S", processSobel);
-    CREATE_ACTION(robertsAct, "Roberts", "Ctrl+R", processRoberts);
-    CREATE_ACTION(cannyAct, "Canny", "Ctrl+C", processCanny);
+    CREATE_ACTION(neighborGaussianAct, "Neighborhood Gaussian", "", displayNeighborGaussianPanel);
+    CREATE_ACTION(sobelAct, "Sobel", "", processSobel);
+    CREATE_ACTION(robertsAct, "Roberts", "", processRoberts);
+    CREATE_ACTION(cannyAct, "Canny", "", processCanny);
     CREATE_ACTION(hazeAct, "Haze", "", processHaze);
 }
 
 void MainWindow::createMenus() {
     fileMenu = new QMenu(tr("&File"), this);
     fileMenu->addAction(openAct);
+    fileMenu->addAction(saveasAct);
 
     editMenu = new QMenu(tr("&Edit"), this);
     editMenu->addAction(undoAct);
@@ -115,7 +117,7 @@ void MainWindow::createMenus() {
     morphOperationMenu->addAction(openOprAct);
     morphOperationMenu->addAction(closeOprAct);
     morphOperationMenu->addAction(thinningAct);
-    neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Averaging"));
+    neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Operation"));
     neighborOperationMenu->addAction(neighborAveAct);
     neighborOperationMenu->addAction(neighborMedAct);
     neighborOperationMenu->addAction(neighborGaussianAct);
@@ -164,6 +166,13 @@ void MainWindow::open() {
         delete previewImage;
         originImage = previewImage = image;
         afterAct(OTHER_OPEN);
+    }
+}
+
+void MainWindow::saveas() {
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save as"), QDir::currentPath(), tr("BMP (*.bmp);;PNG (*.png);;JPG (*.jpg)"));
+    if (!fileName.isEmpty()) {
+        previewImage->save(fileName, fileName.mid(fileName.length()-3).toStdString().c_str());
     }
 }
 

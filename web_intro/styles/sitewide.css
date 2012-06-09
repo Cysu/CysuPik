@@ -1,0 +1,24 @@
+.float-right { float: right; }
+.float-left { float: left; }
+
+.fade-words { font: 8pt Tahoma; color: #aaa; }
+
+html, body { height: 100%; width: 100%; margin: 0; padding: 0; font: 12pt/1.286 Georgia, "Times New Roman", Times, serif; }
+
+h1, h2, h3, h4, h5, h6 { font-weight: bold; font-family: Tahoma; margin: 0; }
+h1 { font-size: 18pt; }
+h2 { font-size: 14pt; }
+
+#banner { height: 10%; background: -webkit-linear-gradient(-90deg, #fff, #ddd); border-bottom: 1px solid #aaa; }
+#banner-logo { margin: 10px 20px; }
+#banner-lastedit { margin: 10px 10px; }
+
+#dir-lv1 { border-right: 1px solid #aaa; }
+.directory { float: left; height: 90%; background: -webkit-linear-gradient(-90deg, #ddd, #ccc); }
+.dir-entry { padding: 25px 20px; color: #fff; text-shadow: 1px 1px 5px black; }
+.dir-entry:hover, .dir-entry.current { cursor: pointer; background: -webkit-linear-gradient(90deg, #aaa, #333); }
+.dir-entry-lv1 { text-align: center; }
+.dir-entry-lv2 { text-align: left; padding: 20px; }
+
+#content{ float: left; padding: 40px 0px 0px 40px; }
+.preview-image { -webkit-box-shadow: 0 0 1em black; width: 512px; }
