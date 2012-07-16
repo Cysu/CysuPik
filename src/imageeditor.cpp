@@ -442,81 +442,9 @@ void ImageEditor::canny() {
         }
 }
 
-void ImageEditor::haze() {
+void ImageEditor::inpainting(bool* markupRegion) {
     int w = srcImage->width(), h = srcImage->height();
-    double** t = new double*[w];
-    int** tmp = new int*[w];
-    int** darkChannel = new int*[w];
-    for (int i = 0; i < w; i ++) {
-        t[i] = new double[h];
-        tmp[i] = new int[h];
-        darkChannel[i] = new int[h];
-    }
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++) {
-            QColor c(srcImage->pixel(i, j));
-            tmp[i][j] = min(c.red(), c.green());
-            tmp[i][j] = min(tmp[i][j], c.blue());
-        }
-    // Naive neighbor
-    *dstImage = srcImage->copy();
-    int maxD = 0;
-    QColor A;
-    int patch = 7;
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++) {
-            darkChannel[i][j] = tmp[i][j];
-            QColor a(srcImage->pixel(i, j));
-            for (int dx = -patch; dx <= patch; dx ++)
-                for (int dy = -patch; dy <= patch; dy ++) {
-                    if (0 <= i + dx && i + dx < w && 0 <= j + dy && j + dy < h) {
-                        QColor b(srcImage->pixel(i + dx, j + dy));
-                        darkChannel[i][j] = min(darkChannel[i][j], tmp[i + dx][j + dy]);
-                    }
-                }
-            if (maxD < darkChannel[i][j]) {
-                maxD = darkChannel[i][j];
-                A = a;
-            }
-            QColor c(darkChannel[i][j], darkChannel[i][j], darkChannel[i][j]);
-            dstImage->setPixel(i, j, c.rgb());
-        }
-
-    *dstImage = srcImage->copy();
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++) {
-            t[i][j] = 1 - darkChannel[i][j] * 0.95 / maxD;
-            QColor c(t[i][j] * 255, t[i][j] * 255, t[i][j] * 255);
-            dstImage->setPixel(i, j, c.rgb());
-        }
-
-    // myself
-    /*bool** mark = new bool*[w];
-    for (int i = 0; i < w; i ++) mark[i] = new bool[h];
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++) mark[i][j] = false;
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++)
-            if (t[i][j] < 0.5 && !mark[i][j]) {
-                floodfill(i, j, t, darkChannel, mark, maxD);
-            }*/
-
-    /**dstImage = srcImage->copy();
-    for (int i = 0; i < w; i ++)
-        for (int j = 0; j < h; j ++) {
-            QColor c(srcImage->pixel(i, j));
-            int d = max(abs(c.red() - c.green()), abs(c.green() - c.blue()));
-            d = max(d, abs(c.red() - c.blue()));
-
-            int r = A.red() + (c.red() - A.red()) / max(0.3, t[i][j]);
-            int g = A.green() + (c.green() - A.green()) / max(0.3, t[i][j]);
-            int b = A.blue() + (c.blue() - A.blue()) / max(0.3, t[i][j]);
-
-            if (r > 255 || g > 255 || b > 255) continue;
-            if (r < 0 || g < 0 || b < 0) continue;// printf("%d %d %d\n", r, g, b);
-            c.setRgb(r, g, b);
-            dstImage->setPixel(i, j, c.rgb());
-        }*/
+    *dstImage = srcImage->copy(0, 0, w, h);
 }
 
 void ImageEditor::sort(vector<int>& a, int l, int r) {
@@ -534,24 +462,6 @@ void ImageEditor::sort(vector<int>& a, int l, int r) {
     }
     if (l < j) sort(a, l, j);
     if (i < r) sort(a, i, r);
-}
-
-void ImageEditor::floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD) {
-    for (int dx = -1; dx <= 1; dx ++)
-        for (int dy = -1; dy <= 1; dy ++)
-            if (0 <= x + dx && x + dx < srcImage->width() && 0 <= y + dy && y + dy < srcImage->height())
-                if (!mark[x+dx][y+dy] && t[x+dx][y+dy] >= 0.5) {
-                    mark[x+dx][y+dy] = true;
-                    QColor a(srcImage->pixel(x, y));
-                    QColor b(srcImage->pixel(x+dx, y+dy));
-                    int th = 10;
-                    if (abs(a.red() - b.red()) < th && abs(a.green() - b.green()) < th && abs(a.blue() - b.blue()) < th) {
-                        int d = min(b.red(), b.green());
-                        d = min(d, b.blue());
-                        t[x+dx][y+dy] = t[x][y] * 1.0 + (1 - d*0.95/maxD) * 0.0;
-                        floodfill(x+dx, y+dy, t, darkChannel, mark, maxD);
-                    }
-                }
 }
 
 void ImageEditor::__canny_threshold(int x, int y, int *&mark, int th, int tl) {

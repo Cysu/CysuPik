@@ -31,6 +31,7 @@ private slots:
     void displayNeighborAvePanel();
     void displayNeighborMedPanel();
     void displayNeighborGaussianPanel();
+    void displayInpaintingPanel();
 
     void processConvertToGrayscale();
     void processAntiColor();
@@ -55,11 +56,13 @@ private slots:
     void processSobel();
     void processRoberts();
     void processCanny();
-    void processHaze();
+    void processInpainting();
+    void processInpaintingMarkup();
 
 protected:
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent *event);
 
 private:
     void createPanels();
@@ -72,6 +75,13 @@ private:
     QImage *originImage, *previewImage;
     ACTION_TYPE lastActType;
 
+    // Inpainting
+    bool isMarkingup;
+    bool* markupRegion;
+    QImage* markupImage;
+    QPoint prevMousePos;
+    void __inpainting_markup(int x, int y, int r);
+
     QLabel* imageLabel;
     QScrollArea* mainPanel;
     FloatPanel* histogramPanel;
@@ -82,6 +92,7 @@ private:
     FloatPanel* neighborAvePanel;
     FloatPanel* neighborMedPanel;
     FloatPanel* neighborGaussianPanel;
+    FloatPanel* inpaintingPanel;
 
     QSlider* thresholdSlider;
     QSlider* rotationSlider;
@@ -123,7 +134,7 @@ private:
     QAction* sobelAct;
     QAction* robertsAct;
     QAction* cannyAct;
-    QAction* hazeAct;
+    QAction* inpaintingAct;
 
     QMenu* fileMenu;
     QMenu* editMenu;

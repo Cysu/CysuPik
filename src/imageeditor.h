@@ -45,14 +45,13 @@ public:
     void sobel();
     void roberts();
     void canny();
-    void haze();
+    void inpainting(bool* markupRegion);
 
 private:
     QImage* srcImage;
     QImage* dstImage;
 
     void sort(vector<int>& a, int l, int r);
-    void floodfill(int x, int y, double** t, int** darkChannel, bool** mark, int maxD);
     void __canny_threshold(int x, int y, int* &mark, int th, int tl);
 };
 

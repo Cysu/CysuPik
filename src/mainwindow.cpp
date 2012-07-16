@@ -12,6 +12,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     originImage = NULL;
     previewImage = NULL;
     lastActType = NOTHING;
+
+    isMarkingup = false;
+    markupRegion = NULL;
+    markupImage = NULL;
 }
 
 /* *
@@ -39,6 +43,7 @@ void MainWindow::createPanels() {
     neighborAvePanel = NULL;
     neighborMedPanel = NULL;
     neighborGaussianPanel = NULL;
+    inpaintingPanel = NULL;
 
     thresholdSlider = NULL;
     rotationSlider = NULL;
@@ -82,7 +87,7 @@ void MainWindow::createActions() {
     CREATE_ACTION(sobelAct, "Sobel", "", processSobel);
     CREATE_ACTION(robertsAct, "Roberts", "", processRoberts);
     CREATE_ACTION(cannyAct, "Canny", "", processCanny);
-    CREATE_ACTION(hazeAct, "Haze", "", processHaze);
+    CREATE_ACTION(inpaintingAct, "Inpainting", "", displayInpaintingPanel);
 }
 
 void MainWindow::createMenus() {
@@ -125,7 +130,7 @@ void MainWindow::createMenus() {
     neighborOperationMenu->addAction(robertsAct);
     neighborOperationMenu->addAction(cannyAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
-    otherOperationMenu->addAction(hazeAct);
+    otherOperationMenu->addAction(inpaintingAct);
 
     menuBar()->addMenu(fileMenu);
     menuBar()->addMenu(editMenu);
@@ -133,6 +138,10 @@ void MainWindow::createMenus() {
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *event) {
+    if (isMarkingup) {
+        prevMousePos.setX(-1);
+        prevMousePos.setY(-1);
+    }
     if (event->button() == Qt::LeftButton) {
         if (originImage != NULL) {
             imageLabel->setPixmap(QPixmap::fromImage(*originImage));
@@ -147,6 +156,33 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
             imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
             imageLabel->adjustSize();
         }
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event) {
+    if (isMarkingup) {
+        QPoint pos = event->pos()-imageLabel->pos()-mainPanel->pos();
+        if (prevMousePos != QPoint(-1, -1)) {
+            QPoint dp = pos - prevMousePos;
+            if (abs(dp.x()) < abs(dp.y())) {
+                int sign = dp.y() > 0 ? 1 : -1;
+                for (int dy = 0; dy <= abs(dp.y()); dy ++) {
+                    int y = prevMousePos.y() + sign*dy;
+                    double k = dy * 1.0 / abs(dp.y());
+                    int x = (int)(prevMousePos.x() + k * dp.x() + 0.5);
+                    __inpainting_markup(x, y, 3);
+                }
+            } else {
+                int sign = dp.x() > 0 ? 1 : -1;
+                for (int dx = 0; dx <= abs(dp.x()); dx ++) {
+                    int x = prevMousePos.x() + sign*dx;
+                    double k = dx * 1.0 / abs(dp.x());
+                    int y = (int)(prevMousePos.y() + k * dp.y() + 0.5);
+                    __inpainting_markup(x, y, 3);
+                }
+            }
+        }
+        prevMousePos = pos;
     }
 }
 
@@ -358,6 +394,23 @@ void MainWindow::displayNeighborGaussianPanel() {
     addDockWidget(Qt::RightDockWidgetArea, neighborGaussianPanel);
 }
 
+void MainWindow::displayInpaintingPanel() {
+    QPushButton* doInpaintingButton = new QPushButton("Inpaiting", this);
+    QPushButton* doMarkupButton = new QPushButton("Markup", this);
+    connect(doMarkupButton, SIGNAL(clicked()), this, SLOT(processInpaintingMarkup()));
+    connect(doInpaintingButton, SIGNAL(clicked()), this, SLOT(processInpainting()));
+
+    QWidget* widget = new QWidget;
+    QGridLayout* layout = new QGridLayout;
+    layout->addWidget(doMarkupButton, 0, 0);
+    layout->addWidget(doInpaintingButton, 0, 1);
+    widget->setLayout(layout);
+
+    delete inpaintingPanel;
+    inpaintingPanel = new FloatPanel(tr("Inpainting"), widget);
+    addDockWidget(Qt::RightDockWidgetArea, inpaintingPanel);
+}
+
 void MainWindow::processConvertToGrayscale() {
     DO_ACTION(POINT_CONVERTTOGRAYSCALE, convertToGrayscale());
 }
@@ -470,7 +523,21 @@ void MainWindow::processCanny() {
     DO_ACTION(NEIGHBOR_CANNY, canny());
 }
 
-void MainWindow::processHaze() {
+void MainWindow::processInpainting() {
+    DO_ACTION(OTHER_INPAINTING, inpainting(markupRegion));
+}
+
+void MainWindow::processInpaintingMarkup() {
+    isMarkingup = true;
+    int w = originImage->width(), h = originImage->height();
+
+    delete markupImage;
+    markupImage = new QImage;
+    *markupImage = originImage->copy(0, 0 , w, h);
+
+    delete markupRegion;
+    markupRegion = new bool[w*h];
+    memset(markupRegion, false, w*h*sizeof(bool));
 }
 
 /* *
@@ -514,4 +581,18 @@ void MainWindow::recordAct(ACTION_TYPE type) {
 void MainWindow::afterAct(ACTION_TYPE type) {
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
     imageLabel->adjustSize();
+}
+
+
+void MainWindow::__inpainting_markup(int x, int y, int r) {
+    int w = markupImage->width(), h = markupImage->height();
+    for (int dx = -r; dx <= r; dx ++)
+        for (int dy = -r; dy <= r; dy ++) {
+            if (SQR(dx) + SQR(dy) > SQR(r)) continue;
+            if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h) continue;
+            QPoint pos(x + dx, y + dy);
+            markupRegion[pos.x()*h + pos.y()] = true;
+            markupImage->setPixel(pos, QColor(Qt::blue).rgb());
+        }
+    imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
 }
