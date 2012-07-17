@@ -19,6 +19,12 @@ public:
     ImageEditor();
 
     static void getHistogram(QImage* image, int* histogram);
+    inline static bool isValidPixel(int x, int y, int w, int h) {
+        return (0 <= x && x < w && 0 <= y && y < h);
+    }
+    inline static double colorDiff(QColor c1, QColor c2) {
+        return SQR(c1.red()-c2.red()) + SQR(c1.green()-c2.green()) + SQR(c1.blue()-c2.blue());
+    }
 
     void setImage(QImage* srcImage, QImage* dstImage);
 
@@ -51,8 +57,10 @@ private:
     QImage* srcImage;
     QImage* dstImage;
 
-    void sort(vector<int>& a, int l, int r);
+    void __sort(vector<int>& a, int l, int r);
     void __canny_threshold(int x, int y, int* &mark, int th, int tl);
+    void __get_gradient(QImage* img, double* gx, double* gy);
+    void __get_gradient(bool* binImg, int w, int h, double* gx, double* gy);
 };
 
 #endif // IMAGEEDITOR_H

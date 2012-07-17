@@ -5,7 +5,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     createActions();
     createMenus();
 
-    setWindowTitle(tr("Cysu Pic"));
+    setWindowTitle(tr("Cysu Pik"));
     showMaximized();
 
     cntImageNum = -1;
@@ -87,7 +87,7 @@ void MainWindow::createActions() {
     CREATE_ACTION(sobelAct, "Sobel", "", processSobel);
     CREATE_ACTION(robertsAct, "Roberts", "", processRoberts);
     CREATE_ACTION(cannyAct, "Canny", "", processCanny);
-    CREATE_ACTION(inpaintingAct, "Inpainting", "", displayInpaintingPanel);
+    CREATE_ACTION(inpaintingAct, "Inpainting", "Ctrl+I", displayInpaintingPanel);
 }
 
 void MainWindow::createMenus() {
@@ -141,6 +141,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
     if (isMarkingup) {
         prevMousePos.setX(-1);
         prevMousePos.setY(-1);
+        return;
     }
     if (event->button() == Qt::LeftButton) {
         if (originImage != NULL) {
@@ -151,6 +152,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
+    if (isMarkingup) return;
     if (event->button() == Qt::LeftButton) {
         if (previewImage != NULL) {
             imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
@@ -170,7 +172,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
                     int y = prevMousePos.y() + sign*dy;
                     double k = dy * 1.0 / abs(dp.y());
                     int x = (int)(prevMousePos.x() + k * dp.x() + 0.5);
-                    __inpainting_markup(x, y, 3);
+                    __inpainting_markup(x, y, 8);
                 }
             } else {
                 int sign = dp.x() > 0 ? 1 : -1;
@@ -178,12 +180,16 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
                     int x = prevMousePos.x() + sign*dx;
                     double k = dx * 1.0 / abs(dp.x());
                     int y = (int)(prevMousePos.y() + k * dp.y() + 0.5);
-                    __inpainting_markup(x, y, 3);
+                    __inpainting_markup(x, y, 8);
                 }
             }
         }
         prevMousePos = pos;
     }
+}
+
+void MainWindow::refresh() {
+    imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
 }
 
 /* *
@@ -582,7 +588,6 @@ void MainWindow::afterAct(ACTION_TYPE type) {
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
     imageLabel->adjustSize();
 }
-
 
 void MainWindow::__inpainting_markup(int x, int y, int r) {
     int w = markupImage->width(), h = markupImage->height();

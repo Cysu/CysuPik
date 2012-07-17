@@ -17,6 +17,9 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget *parent = 0);
 
+public slots:
+    void refresh();
+
 private slots:
     void open();
     void saveas();

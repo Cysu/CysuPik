@@ -273,7 +273,7 @@ void ImageEditor::neighborMed(int value) {
                 for (int dy = -value; dy <= value; dy ++)
                     if (0 <= i+dx && i+dx < w && 0 <= j+dy && j+dy < w)
                         tmp.push_back(qGray(srcImage->pixel(i+dx, j+dy)));
-            sort(tmp, 0, tmp.size() - 1);
+            __sort(tmp, 0, tmp.size() - 1);
             dstImage->setPixel(i, j, tmp[tmp.size() / 2]);
         }
 }
@@ -445,9 +445,165 @@ void ImageEditor::canny() {
 void ImageEditor::inpainting(bool* markupRegion) {
     int w = srcImage->width(), h = srcImage->height();
     *dstImage = srcImage->copy(0, 0, w, h);
+
+    // Setup parameters.
+    int patchSize = 9;
+
+    // Compute isophote.
+    double* nx = new double[w*h];
+    double* ny = new double[w*h];
+    __get_gradient(srcImage, nx, ny);
+    double* ix = new double[w*h];
+    double* iy = new double[w*h];
+    memcpy(ix, ny, w*h*sizeof(double));
+    for (int i = 0; i < w; i ++)
+        for (int j = 0; j < h; j ++) iy[i*h+j] = -ny[i*h+j];
+
+    // Compute the number of pixels to be inpainted.
+    // Init confidence terms.
+    // Record the original image region.
+    int remainPixels = 0;
+    double* c = new double[w*h];
+    double* d = new double[w*h];
+    bool* sourceRegion = new bool[w*h];
+    for (int x = 0; x < w; x ++)
+        for (int y = 0; y < h; y ++) {
+            int idx = x*h + y;
+            remainPixels += (int)(markupRegion[idx]);
+            c[idx] = 1-(int)(markupRegion[idx]);
+            d[idx] = -0.1;
+            sourceRegion[idx] = !markupRegion[idx];
+        }
+
+    // Start inpainting.
+    while (remainPixels > 0) {
+
+        // Find the border.
+        vector<QPoint> borderPixels;
+        for (int x = 0; x < w; x ++)
+            for (int y = 0; y < h; y ++) {
+                if (markupRegion[x*h+y]) continue;
+                for (int dx = -1; dx <= 1; dx ++)
+                    for (int dy = -1; dy <= 1; dy ++) {
+                        if (dx == 0 && dy == 0) continue;
+                        if (!isValidPixel(x+dx, y+dy, w, h)) continue;
+                        if (markupRegion[(x+dx)*h+(y+dy)]) {
+                            borderPixels.push_back(QPoint(x, y));
+                            goto finish_checking_neighbor;
+                        }
+
+                    }
+            finish_checking_neighbor:
+                continue;
+            }
+
+
+        // Compute the normal direction of the border pixels and linear factors.
+        // Compute the confidence of the border pixels.
+        // Compute the priority of the border pixels.
+        // Find the best border pixel.
+        double maxPriority = -1e10;
+        int px, py;
+        __get_gradient(markupRegion, w, h, nx, ny);
+        for (int i = 0; i < borderPixels.size(); i ++) {
+            int x = borderPixels[i].x(), y = borderPixels[i].y();
+            int idx = x*h + y;
+
+            double n1 = nx[idx];
+            double n2 = ny[idx];
+            if (n1 != 0 || n2 != 0) {
+                double n = sqrt(SQR(n1) + SQR(n2));
+                n1 /= n;
+                n2 /= n;
+            }
+
+            d[idx] = fabs(ix[idx]*n1 + iy[idx]*n2) + 1e-6;
+
+            double patchSum = 0;
+            int nrPatchPixels = 0;
+            for (int dx = -patchSize/2; dx <= patchSize/2; dx ++)
+                for (int dy = -patchSize/2; dy <= patchSize/2; dy ++) {
+                    if (!isValidPixel(x+dx, y+dy, w, h)) continue;
+                    nrPatchPixels ++;
+                    patchSum += c[(x+dx)*h + (y+dy)];
+                }
+            c[idx] = patchSum / nrPatchPixels;
+
+            double priority = c[idx] * d[idx];
+            if (priority > maxPriority) {
+                maxPriority = priority;
+                px = x;
+                py = y;
+            }
+        }
+
+        // Find a best replacing patch from original image.
+        int lx = min(patchSize/2, px);
+        int rx = min(patchSize/2, w-px-1);
+        int ly = min(patchSize/2, py);
+        int ry = min(patchSize/2, h-py-1);
+
+        double minDiff = 1e10;
+        int qx, qy;
+
+        for (int x = lx; x < w-rx; x ++)
+            for (int y = ly; y < h-ry; y ++) {
+                double diff = 0;
+                for (int dx = -lx; dx <= rx; dx ++)
+                    for (int dy = -ly; dy <= ry; dy ++) {
+
+                        // Check if the pixels in source patch are all of original image.
+                        int k1 = (x+dx)*h + (y+dy);
+                        if (!sourceRegion[k1]) goto invalid_patch;
+
+                        // Check if the pixel in border patch is marked up.
+                        int k2 = (px+dx)*h + (py+dy);
+                        if (markupRegion[k2]) continue;
+
+                        // Compute the difference, using RGB-color space.
+                        QColor cBorderPixel(dstImage->pixel(px+dx, py+dy));
+                        QColor cSourcePixel(dstImage->pixel(x+dx, y+dy));
+                        diff += colorDiff(cBorderPixel, cSourcePixel);
+                        if (diff > minDiff) goto invalid_patch;
+                    }
+
+                minDiff = diff;
+                qx = x;
+                qy = y;
+
+            invalid_patch:
+                continue;
+            }
+
+        // Update the image, confidence, isophote and markupRegion.
+        for (int dx = -lx; dx <= rx; dx ++)
+            for (int dy = -ly; dy <= ry; dy ++) {
+                QColor cReplace(srcImage->pixel(qx+dx, qy+dy));
+                dstImage->setPixel(px+dx, py+dy, cReplace.rgb());
+
+                int borderIdx = (px+dx)*h + (py+dy);
+                int sourceIdx = (qx+dx)*h + (qy+dy);
+
+                c[borderIdx] = c[px*h + py];
+
+                ix[borderIdx] = ix[sourceIdx];
+                iy[borderIdx] = iy[sourceIdx];
+
+                remainPixels -= (int)(markupRegion[borderIdx]);
+                markupRegion[borderIdx] = false;
+            }
+    }
+
+    delete c;
+    delete d;
+    delete nx;
+    delete ny;
+    delete ix;
+    delete iy;
+    delete sourceRegion;
 }
 
-void ImageEditor::sort(vector<int>& a, int l, int r) {
+void ImageEditor::__sort(vector<int>& a, int l, int r) {
     int i = l, j = r, x = a[(l+r) >> 1];
     while (i <= j) {
         while (a[i] < x) i ++;
@@ -460,8 +616,8 @@ void ImageEditor::sort(vector<int>& a, int l, int r) {
             j --;
         }
     }
-    if (l < j) sort(a, l, j);
-    if (i < r) sort(a, i, r);
+    if (l < j) __sort(a, l, j);
+    if (i < r) __sort(a, i, r);
 }
 
 void ImageEditor::__canny_threshold(int x, int y, int *&mark, int th, int tl) {
@@ -479,4 +635,30 @@ void ImageEditor::__canny_threshold(int x, int y, int *&mark, int th, int tl) {
     if (x < dstImage->width()-1) __canny_threshold(x+1, y, mark, th, tl);
     if (y > 0) __canny_threshold(x, y-1, mark, th, tl);
     if (y < dstImage->height()-1) __canny_threshold(x, y+1, mark, th, tl);
+}
+
+void ImageEditor::__get_gradient(QImage *img, double *gx, double *gy) {
+    int w = img->width(), h = img->height();
+
+    for (int y = 0; y < h; y ++) gx[y] = qGray(img->pixel(0, y));
+    for (int x = 1; x < w; x ++)
+        for (int y = 0; y < h; y ++)
+            gx[x*h + y] = qGray(img->pixel(x, y)) - qGray(img->pixel(x-1, y));
+
+    for (int x = 0; x < w; x ++) gy[x*h] = qGray(img->pixel(x, 0));
+    for (int x = 0; x < w; x ++)
+        for (int y = 1; y < h; y ++)
+            gy[x*h + y] = qGray(img->pixel(x, y)) - qGray(img->pixel(x, y-1));
+}
+
+void ImageEditor::__get_gradient(bool *binImg, int w, int h, double *gx, double *gy) {
+    for (int y = 0; y < h; y ++) gx[y] = (int)(binImg[y]);
+    for (int x = 1; x < w; x ++)
+        for (int y = 0; y < h; y ++)
+            gx[x*h + y] = (int)(binImg[x*h + y]) - (int)(binImg[(x-1)*h + y]);
+
+    for (int x = 0; x < w; x ++) gy[x*h] = (int)(binImg[x*h]);
+    for (int x = 0; x < w; x ++)
+        for (int y = 1; y < h; y ++)
+            gy[x*h + y] = (int)(binImg[x*h + y]) - (int)(binImg[x*h + (y-1)]);
 }
