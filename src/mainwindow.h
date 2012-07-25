@@ -61,6 +61,7 @@ private slots:
     void processCanny();
     void processInpainting();
     void processInpaintingMarkup();
+    void processInpaintingStructure();
 
 protected:
     void mousePressEvent(QMouseEvent* event);
@@ -80,10 +81,13 @@ private:
 
     // Inpainting
     bool isMarkingup;
+    bool isStructuring;
     bool* markupRegion;
+    vector<QPoint> structureRegion;
     QImage* markupImage;
     QPoint prevMousePos;
     void __inpainting_markup(int x, int y, int r);
+    void __inpainting_structure(int x, int y, int r);
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;

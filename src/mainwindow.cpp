@@ -14,6 +14,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     lastActType = NOTHING;
 
     isMarkingup = false;
+    isStructuring = false;
     markupRegion = NULL;
     markupImage = NULL;
 }
@@ -172,7 +173,10 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
                     int y = prevMousePos.y() + sign*dy;
                     double k = dy * 1.0 / abs(dp.y());
                     int x = (int)(prevMousePos.x() + k * dp.x() + 0.5);
-                    __inpainting_markup(x, y, 8);
+                    if (isStructuring)
+                        __inpainting_structure(x, y, 0);
+                    else
+                        __inpainting_markup(x, y, 8);
                 }
             } else {
                 int sign = dp.x() > 0 ? 1 : -1;
@@ -180,7 +184,10 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
                     int x = prevMousePos.x() + sign*dx;
                     double k = dx * 1.0 / abs(dp.x());
                     int y = (int)(prevMousePos.y() + k * dp.y() + 0.5);
-                    __inpainting_markup(x, y, 8);
+                    if (isStructuring)
+                        __inpainting_structure(x, y, 0);
+                    else
+                        __inpainting_markup(x, y, 8);
                 }
             }
         }
@@ -403,13 +410,16 @@ void MainWindow::displayNeighborGaussianPanel() {
 void MainWindow::displayInpaintingPanel() {
     QPushButton* doInpaintingButton = new QPushButton("Inpaiting", this);
     QPushButton* doMarkupButton = new QPushButton("Markup", this);
+    QPushButton* doStructureButton = new QPushButton("Structure", this);
     connect(doMarkupButton, SIGNAL(clicked()), this, SLOT(processInpaintingMarkup()));
     connect(doInpaintingButton, SIGNAL(clicked()), this, SLOT(processInpainting()));
+    connect(doStructureButton, SIGNAL(clicked()), this, SLOT(processInpaintingStructure()));
 
     QWidget* widget = new QWidget;
     QGridLayout* layout = new QGridLayout;
     layout->addWidget(doMarkupButton, 0, 0);
     layout->addWidget(doInpaintingButton, 0, 1);
+    layout->addWidget(doStructureButton, 1, 0);
     widget->setLayout(layout);
 
     delete inpaintingPanel;
@@ -530,7 +540,7 @@ void MainWindow::processCanny() {
 }
 
 void MainWindow::processInpainting() {
-    DO_ACTION(OTHER_INPAINTING, inpainting(markupRegion));
+    DO_ACTION(OTHER_INPAINTING, inpainting(markupRegion, structureRegion));
 }
 
 void MainWindow::processInpaintingMarkup() {
@@ -544,6 +554,11 @@ void MainWindow::processInpaintingMarkup() {
     delete markupRegion;
     markupRegion = new bool[w*h];
     memset(markupRegion, false, w*h*sizeof(bool));
+}
+
+void MainWindow::processInpaintingStructure() {
+    isStructuring = true;
+    structureRegion.empty();
 }
 
 /* *
@@ -598,6 +613,19 @@ void MainWindow::__inpainting_markup(int x, int y, int r) {
             QPoint pos(x + dx, y + dy);
             markupRegion[pos.x()*h + pos.y()] = true;
             markupImage->setPixel(pos, QColor(Qt::blue).rgb());
+        }
+    imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
+}
+
+void MainWindow::__inpainting_structure(int x, int y, int r) {
+    int w = markupImage->width(), h = markupImage->height();
+    for (int dx = -r; dx <= r; dx ++)
+        for (int dy = -r; dy <= r; dy ++) {
+            if (SQR(dx) + SQR(dy) > SQR(r)) continue;
+            if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h) continue;
+            QPoint pos(x + dx, y + dy);
+            structureRegion.push_back(pos);
+            markupImage->setPixel(pos, QColor(Qt::cyan).rgb());
         }
     imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
 }

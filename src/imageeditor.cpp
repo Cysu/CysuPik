@@ -442,9 +442,40 @@ void ImageEditor::canny() {
         }
 }
 
-void ImageEditor::inpainting(bool* markupRegion) {
+void ImageEditor::inpainting(bool* markupRegion, vector<QPoint>& structureRegion) {
     int w = srcImage->width(), h = srcImage->height();
     *dstImage = srcImage->copy(0, 0, w, h);
+
+    // Structure propagation.
+    vector<QPoint> srcStructPixels, dstStructPixels;
+    int cont = 0;
+    for (int i = 0; i < structureRegion.size(); i ++) {
+        int x = structureRegion[i].x(), y = structureRegion[i].y();
+        if (!markupRegion[x*h + y]) {
+            int r = 2;
+            for (int dx = -r; dx <= r; dx ++)
+                for (int dy = -r; dy <= r; dy ++) {
+                    if (!isValidPixel(x+dx, y+dy, w, h)) continue;
+                    if (markupRegion[(x+dx)*h + (y+dy)]) continue;
+                    srcStructPixels.push_back(QPoint(x+dx, y+dy));
+                }
+        } else {
+            cont ++;
+            if (cont % 3 != 1) continue;
+            dstStructPixels.push_back(structureRegion[i]);
+        }
+    }
+
+    int srcSize = srcStructPixels.size(), dstSize = dstStructPixels.size();
+    double* f = new double[srcSize*dstSize];
+    for (int i = 0; i < srcSize; i ++) {
+        f[i] = __struct_diff(srcImage, structureRegion, dstStructPixels[0], srcStructPixels[i]) +
+                __boundary_diff(srcImage, markupRegion, dstStructPixels[0]);
+    }
+
+
+    return;
+
 
     // Setup parameters.
     int patchSize = 9;
@@ -549,6 +580,7 @@ void ImageEditor::inpainting(bool* markupRegion) {
         for (int x = lx; x < w-rx; x ++)
             for (int y = ly; y < h-ry; y ++) {
                 double diff = 0;
+                double alpha = 10-9*exp(-(SQR(x-px)+SQR(y-py))/400.0);
                 for (int dx = -lx; dx <= rx; dx ++)
                     for (int dy = -ly; dy <= ry; dy ++) {
 
@@ -563,7 +595,7 @@ void ImageEditor::inpainting(bool* markupRegion) {
                         // Compute the difference, using RGB-color space.
                         QColor cBorderPixel(dstImage->pixel(px+dx, py+dy));
                         QColor cSourcePixel(dstImage->pixel(x+dx, y+dy));
-                        diff += colorDiff(cBorderPixel, cSourcePixel);
+                        diff += colorDiff(cBorderPixel, cSourcePixel) * alpha;
                         if (diff > minDiff) goto invalid_patch;
                     }
 
@@ -579,6 +611,7 @@ void ImageEditor::inpainting(bool* markupRegion) {
         for (int dx = -lx; dx <= rx; dx ++)
             for (int dy = -ly; dy <= ry; dy ++) {
                 QColor cReplace(srcImage->pixel(qx+dx, qy+dy));
+                __color_random_adjust(&cReplace);
                 dstImage->setPixel(px+dx, py+dy, cReplace.rgb());
 
                 int borderIdx = (px+dx)*h + (py+dy);
@@ -618,6 +651,22 @@ void ImageEditor::__sort(vector<int>& a, int l, int r) {
     }
     if (l < j) __sort(a, l, j);
     if (i < r) __sort(a, i, r);
+}
+
+void ImageEditor::__color_random_adjust(QColor *color) {
+    int sign = (rand() % 2 == 0) ? 1 : -1;
+    int percent = rand() % 5;
+    double ratio = 1+sign*0.01*percent;
+    int r = (int)(color->red()*ratio + 0.5);
+    int g = (int)(color->green()*ratio + 0.5);
+    int b = (int)(color->blue()*ratio + 0.5);
+    r = min(r, 255);
+    g = min(g, 255);
+    b = min(b, 255);
+    r = max(r, 0);
+    g = max(g, 0);
+    b = max(b, 0);
+    color->setRgb(r, g, b);
 }
 
 void ImageEditor::__canny_threshold(int x, int y, int *&mark, int th, int tl) {

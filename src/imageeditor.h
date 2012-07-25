@@ -11,9 +11,6 @@
 
 using namespace std;
 
-const QColor WHITE(255, 255, 255);
-const QColor BLACK(0, 0, 0);
-
 class ImageEditor {
 public:
     ImageEditor();
@@ -23,7 +20,7 @@ public:
         return (0 <= x && x < w && 0 <= y && y < h);
     }
     inline static double colorDiff(QColor c1, QColor c2) {
-        return SQR(c1.red()-c2.red()) + SQR(c1.green()-c2.green()) + SQR(c1.blue()-c2.blue());
+        return sqrt((SQR(c1.red()-c2.red()) + SQR(c1.green()-c2.green()) + SQR(c1.blue()-c2.blue()))/3);
     }
 
     void setImage(QImage* srcImage, QImage* dstImage);
@@ -51,13 +48,14 @@ public:
     void sobel();
     void roberts();
     void canny();
-    void inpainting(bool* markupRegion);
+    void inpainting(bool* markupRegion, vector<QPoint>& structureRegion);
 
 private:
     QImage* srcImage;
     QImage* dstImage;
 
     void __sort(vector<int>& a, int l, int r);
+    void __colorRandomAdjust(QColor* color);
     void __canny_threshold(int x, int y, int* &mark, int th, int tl);
     void __get_gradient(QImage* img, double* gx, double* gy);
     void __get_gradient(bool* binImg, int w, int h, double* gx, double* gy);
