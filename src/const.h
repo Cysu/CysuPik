@@ -1,6 +1,9 @@
 #ifndef CONST_H
 #define CONST_H
 
+const double DOUBLE_INFI = 1e20;
+const int INT_INFI = 0x7fffffff;
+
 enum ACTION_TYPE {
     NOTHING,
     POINT_LINEARTRANSFORMATION,

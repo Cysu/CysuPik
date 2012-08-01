@@ -6,12 +6,15 @@
 #include <iostream>
 #include <cmath>
 #include <ctime>
+#include <cstdio>
+#include "graph.h"
 #include "utils.h"
 #include "const.h"
 
 using namespace std;
 
 class ImageEditor {
+
 public:
     ImageEditor();
 
@@ -48,14 +51,13 @@ public:
     void sobel();
     void roberts();
     void canny();
-    void inpainting(bool* markupRegion, vector<QPoint>& structureRegion);
 
 private:
     QImage* srcImage;
     QImage* dstImage;
 
     void __sort(vector<int>& a, int l, int r);
-    void __colorRandomAdjust(QColor* color);
+    void __color_random_adjust(QColor* color);
     void __canny_threshold(int x, int y, int* &mark, int th, int tl);
     void __get_gradient(QImage* img, double* gx, double* gy);
     void __get_gradient(bool* binImg, int w, int h, double* gx, double* gy);

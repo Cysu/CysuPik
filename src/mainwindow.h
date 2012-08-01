@@ -8,6 +8,7 @@
 #include "imageeditor.h"
 #include "utils.h"
 #include "const.h"
+#include "inpaintingthread.h"
 
 using namespace std;
 
@@ -62,8 +63,12 @@ private slots:
     void processInpainting();
     void processInpaintingMarkup();
     void processInpaintingStructure();
+    void processInpaintingVerify();
+    void processInpaintingFinish();
 
 protected:
+    void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -79,15 +84,25 @@ private:
     QImage *originImage, *previewImage;
     ACTION_TYPE lastActType;
 
+    // Key pressing
+    bool isPressingShift;
+
     // Inpainting
+    InpaintingThread* inpaintingThread;
     bool isMarkingup;
     bool isStructuring;
     bool* markupRegion;
-    vector<QPoint> structureRegion;
-    QImage* markupImage;
-    QPoint prevMousePos;
-    void __inpainting_markup(int x, int y, int r);
-    void __inpainting_structure(int x, int y, int r);
+    bool* structRegion;
+    vector<QPoint> structPixels;
+    vector< vector<QPoint> > structPixelsArray;
+    QImage* markupImage, *markupImage_bak;
+    QPoint prevMouseMovePos;
+    QPoint prevMousePressPos;
+    QPushButton* doInpaintingButton;
+    QPushButton* doMarkupButton;
+    QPushButton* doStructureButton;
+    QPushButton* doVerifyButton;
+    void __inpainting_drawline(QImage* img, QPoint& p1, QPoint& p2, int r, bool isPreview);
 
     QLabel* imageLabel;
     QScrollArea* mainPanel;

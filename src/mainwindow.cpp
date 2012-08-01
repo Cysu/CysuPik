@@ -13,10 +13,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     previewImage = NULL;
     lastActType = NOTHING;
 
+    isPressingShift = false;
+
     isMarkingup = false;
     isStructuring = false;
     markupRegion = NULL;
+    structRegion = NULL;
     markupImage = NULL;
+    markupImage_bak = NULL;
 }
 
 /* *
@@ -57,6 +61,11 @@ void MainWindow::createPanels() {
     neighborMedSlider = NULL;
     neighborGaussianRSlider = NULL;
     neighborGaussianSSlider = NULL;
+
+    doInpaintingButton = NULL;
+    doMarkupButton = NULL;
+    doStructureButton = NULL;
+    doVerifyButton = NULL;
 }
 
 void MainWindow::createActions() {
@@ -101,35 +110,35 @@ void MainWindow::createMenus() {
     editMenu->addAction(redoAct);
 
     processMenu = new QMenu(tr("&Process"), this);
-    pointOperationMenu = processMenu->addMenu(tr("&Point Operation"));
-    pointOperationMenu->addAction(showHistogramAct);
-    pointOperationMenu->addAction(convertToGrayscaleAct);
-    pointOperationMenu->addAction(antiColorAct);
-    pointOperationMenu->addAction(thresholdAct);
-    pointOperationMenu->addAction(histogramEqualizationAct);
-    algOperationMenu = processMenu->addMenu(tr("&Alegrabic Operation"));
-    algOperationMenu->addAction(additionAct);
-    algOperationMenu->addAction(subtractionAct);
-    algOperationMenu->addAction(translationAct);
-    geoOperationMenu = processMenu->addMenu(tr("&Geometrical Operation"));
-    geoOperationMenu->addAction(horizontalMirrorAct);
-    geoOperationMenu->addAction(verticalMirrorAct);
-    geoOperationMenu->addAction(scalingAct);
-    geoOperationMenu->addAction(rotationAct);
-    geoOperationMenu->addAction(perspectiveAct);
-    morphOperationMenu = processMenu->addMenu(tr("&Morphological Operation"));
-    morphOperationMenu->addAction(erosionAct);
-    morphOperationMenu->addAction(dilationAct);
-    morphOperationMenu->addAction(openOprAct);
-    morphOperationMenu->addAction(closeOprAct);
-    morphOperationMenu->addAction(thinningAct);
-    neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Operation"));
-    neighborOperationMenu->addAction(neighborAveAct);
-    neighborOperationMenu->addAction(neighborMedAct);
-    neighborOperationMenu->addAction(neighborGaussianAct);
-    neighborOperationMenu->addAction(sobelAct);
-    neighborOperationMenu->addAction(robertsAct);
-    neighborOperationMenu->addAction(cannyAct);
+//    pointOperationMenu = processMenu->addMenu(tr("&Point Operation"));
+//    pointOperationMenu->addAction(showHistogramAct);
+//    pointOperationMenu->addAction(convertToGrayscaleAct);
+//    pointOperationMenu->addAction(antiColorAct);
+//    pointOperationMenu->addAction(thresholdAct);
+//    pointOperationMenu->addAction(histogramEqualizationAct);
+//    algOperationMenu = processMenu->addMenu(tr("&Alegrabic Operation"));
+//    algOperationMenu->addAction(additionAct);
+//    algOperationMenu->addAction(subtractionAct);
+//    algOperationMenu->addAction(translationAct);
+//    geoOperationMenu = processMenu->addMenu(tr("&Geometrical Operation"));
+//    geoOperationMenu->addAction(horizontalMirrorAct);
+//    geoOperationMenu->addAction(verticalMirrorAct);
+//    geoOperationMenu->addAction(scalingAct);
+//    geoOperationMenu->addAction(rotationAct);
+//    geoOperationMenu->addAction(perspectiveAct);
+//    morphOperationMenu = processMenu->addMenu(tr("&Morphological Operation"));
+//    morphOperationMenu->addAction(erosionAct);
+//    morphOperationMenu->addAction(dilationAct);
+//    morphOperationMenu->addAction(openOprAct);
+//    morphOperationMenu->addAction(closeOprAct);
+//    morphOperationMenu->addAction(thinningAct);
+//    neighborOperationMenu = processMenu->addMenu(tr("&Neighborhood Operation"));
+//    neighborOperationMenu->addAction(neighborAveAct);
+//    neighborOperationMenu->addAction(neighborMedAct);
+//    neighborOperationMenu->addAction(neighborGaussianAct);
+//    neighborOperationMenu->addAction(sobelAct);
+//    neighborOperationMenu->addAction(robertsAct);
+//    neighborOperationMenu->addAction(cannyAct);
     otherOperationMenu = processMenu->addMenu(tr("&Other Operation"));
     otherOperationMenu->addAction(inpaintingAct);
 
@@ -138,10 +147,25 @@ void MainWindow::createMenus() {
     menuBar()->addMenu(processMenu);
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    switch (event->key()) {
+    case Qt::Key_Shift:
+        isPressingShift = true;
+        break;
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    switch (event->key()) {
+    case Qt::Key_Shift:
+        isPressingShift = false;
+        break;
+    }
+}
+
 void MainWindow::mousePressEvent(QMouseEvent *event) {
     if (isMarkingup) {
-        prevMousePos.setX(-1);
-        prevMousePos.setY(-1);
+        prevMouseMovePos = prevMousePressPos = event->pos()-imageLabel->pos()-mainPanel->pos();
         return;
     }
     if (event->button() == Qt::LeftButton) {
@@ -153,7 +177,17 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
-    if (isMarkingup) return;
+    if (isMarkingup) {
+        prevMouseMovePos.setX(-1);
+        prevMouseMovePos.setY(-1);
+        if (isPressingShift) {
+            QPoint cntPos = event->pos()-imageLabel->pos()-mainPanel->pos();
+            __inpainting_drawline(markupImage, prevMousePressPos, cntPos, 0, false);
+        }
+        structPixelsArray.push_back(structPixels);
+        structPixels.clear();
+        return;
+    }
     if (event->button() == Qt::LeftButton) {
         if (previewImage != NULL) {
             imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
@@ -164,39 +198,31 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event) {
     if (isMarkingup) {
-        QPoint pos = event->pos()-imageLabel->pos()-mainPanel->pos();
-        if (prevMousePos != QPoint(-1, -1)) {
-            QPoint dp = pos - prevMousePos;
-            if (abs(dp.x()) < abs(dp.y())) {
-                int sign = dp.y() > 0 ? 1 : -1;
-                for (int dy = 0; dy <= abs(dp.y()); dy ++) {
-                    int y = prevMousePos.y() + sign*dy;
-                    double k = dy * 1.0 / abs(dp.y());
-                    int x = (int)(prevMousePos.x() + k * dp.x() + 0.5);
-                    if (isStructuring)
-                        __inpainting_structure(x, y, 0);
-                    else
-                        __inpainting_markup(x, y, 8);
-                }
-            } else {
-                int sign = dp.x() > 0 ? 1 : -1;
-                for (int dx = 0; dx <= abs(dp.x()); dx ++) {
-                    int x = prevMousePos.x() + sign*dx;
-                    double k = dx * 1.0 / abs(dp.x());
-                    int y = (int)(prevMousePos.y() + k * dp.y() + 0.5);
-                    if (isStructuring)
-                        __inpainting_structure(x, y, 0);
-                    else
-                        __inpainting_markup(x, y, 8);
-                }
-            }
+        QPoint cntPos = event->pos()-imageLabel->pos()-mainPanel->pos();
+        QPoint prevPos = isPressingShift ? prevMousePressPos : prevMouseMovePos;
+        QImage* img;
+        if (!isPressingShift) {
+            img = markupImage;
+        } else {
+            img = new QImage;
+            *img = markupImage->copy(0, 0, markupImage->width(), markupImage->height());
         }
-        prevMousePos = pos;
+
+        int r = isStructuring ? 0 : 6;
+        if (prevPos != QPoint(-1, -1))
+            __inpainting_drawline(img, prevPos, cntPos, r, isPressingShift);
+
+        if (!isPressingShift) {
+            prevMouseMovePos = cntPos;
+        } else {
+            delete img;
+        }
     }
 }
 
 void MainWindow::refresh() {
     imageLabel->setPixmap(QPixmap::fromImage(*previewImage));
+    imageLabel->adjustSize();
 }
 
 /* *
@@ -221,7 +247,10 @@ void MainWindow::open() {
 void MainWindow::saveas() {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save as"), QDir::currentPath(), tr("BMP (*.bmp);;PNG (*.png);;JPG (*.jpg)"));
     if (!fileName.isEmpty()) {
-        previewImage->save(fileName, fileName.mid(fileName.length()-3).toStdString().c_str());
+        if (previewImage != NULL)
+            previewImage->save(fileName, fileName.mid(fileName.length()-3).toStdString().c_str());
+        else
+            originImage->save(fileName, fileName.mid(fileName.length()-3).toStdString().c_str());
     }
 }
 
@@ -408,18 +437,31 @@ void MainWindow::displayNeighborGaussianPanel() {
 }
 
 void MainWindow::displayInpaintingPanel() {
-    QPushButton* doInpaintingButton = new QPushButton("Inpaiting", this);
-    QPushButton* doMarkupButton = new QPushButton("Markup", this);
-    QPushButton* doStructureButton = new QPushButton("Structure", this);
+    delete doInpaintingButton;
+    delete doMarkupButton;
+    delete doStructureButton;
+    delete doVerifyButton;
+
+    doInpaintingButton = new QPushButton("Inpaiting", this);
+    doMarkupButton = new QPushButton("Markup", this);
+    doStructureButton = new QPushButton("Structure", this);
+    doVerifyButton = new QPushButton("Verify", this);
+
+    doInpaintingButton->setDisabled(true);
+    doStructureButton->setDisabled(true);
+    doVerifyButton->setDisabled(true);
+
     connect(doMarkupButton, SIGNAL(clicked()), this, SLOT(processInpaintingMarkup()));
     connect(doInpaintingButton, SIGNAL(clicked()), this, SLOT(processInpainting()));
     connect(doStructureButton, SIGNAL(clicked()), this, SLOT(processInpaintingStructure()));
+    connect(doVerifyButton, SIGNAL(clicked()), this, SLOT(processInpaintingVerify()));
 
     QWidget* widget = new QWidget;
     QGridLayout* layout = new QGridLayout;
     layout->addWidget(doMarkupButton, 0, 0);
     layout->addWidget(doInpaintingButton, 0, 1);
     layout->addWidget(doStructureButton, 1, 0);
+    layout->addWidget(doVerifyButton, 1, 1);
     widget->setLayout(layout);
 
     delete inpaintingPanel;
@@ -539,26 +581,92 @@ void MainWindow::processCanny() {
     DO_ACTION(NEIGHBOR_CANNY, canny());
 }
 
+void MainWindow::processInpaintingVerify() {
+    doMarkupButton->setEnabled(true);
+    doVerifyButton->setDisabled(true);
+    addPreview();
+    originImage = &images[cntImageNum];
+}
+
 void MainWindow::processInpainting() {
-    DO_ACTION(OTHER_INPAINTING, inpainting(markupRegion, structureRegion));
+    isMarkingup = isStructuring = false;
+    doMarkupButton->setDisabled(true);
+    doStructureButton->setDisabled(true);
+    doInpaintingButton->setDisabled(true);
+    recordAct(OTHER_INPAINTING);
+
+    inpaintingThread = new InpaintingThread(originImage, previewImage, markupRegion, structRegion, &structPixelsArray, this);
+    connect(inpaintingThread, SIGNAL(partDone()), this, SLOT(refresh()));
+    connect(inpaintingThread, SIGNAL(finished()), inpaintingThread, SLOT(deleteLater()));
+    connect(inpaintingThread, SIGNAL(finished()), this, SLOT(processInpaintingFinish()));
+    inpaintingThread->start();
+}
+
+void MainWindow::processInpaintingFinish() {
+    afterAct(OTHER_INPAINTING);
+    doVerifyButton->setEnabled(true);
 }
 
 void MainWindow::processInpaintingMarkup() {
-    isMarkingup = true;
-    int w = originImage->width(), h = originImage->height();
+    if (isMarkingup) {
+        doMarkupButton->setText(tr("Start Markup"));
+        doMarkupButton->setDisabled(true);
+        doStructureButton->setEnabled(true);
 
-    delete markupImage;
-    markupImage = new QImage;
-    *markupImage = originImage->copy(0, 0 , w, h);
+        delete markupImage_bak;
+        markupImage_bak = new QImage;
+        *markupImage_bak = markupImage->copy(0, 0, markupImage->width(), markupImage->height());
+    } else {
+        doMarkupButton->setText(tr("End Markup"));
+        doStructureButton->setText(tr("Start Structure"));
+        doStructureButton->setDisabled(true);
+        doInpaintingButton->setDisabled(true);
+        doVerifyButton->setDisabled(true);
 
-    delete markupRegion;
-    markupRegion = new bool[w*h];
-    memset(markupRegion, false, w*h*sizeof(bool));
+        isMarkingup = true;
+        int w = originImage->width(), h = originImage->height();
+
+        delete markupRegion;
+        markupRegion = new bool[w*h];
+        memset(markupRegion, false, w*h*sizeof(bool));
+
+        delete markupImage;
+        markupImage = new QImage;
+        *markupImage = originImage->copy(0, 0 , w, h);
+        imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
+        imageLabel->adjustSize();
+    }
 }
 
 void MainWindow::processInpaintingStructure() {
-    isStructuring = true;
-    structureRegion.empty();
+    if (isStructuring) {
+        doStructureButton->setText(tr("Start Structure"));
+        doInpaintingButton->setEnabled(true);
+        doMarkupButton->setEnabled(true);
+
+        isStructuring = false;
+        isMarkingup = false;
+    } else {
+        doStructureButton->setText(tr("End Structure"));
+        doInpaintingButton->setDisabled(true);
+        doVerifyButton->setDisabled(true);
+
+        isStructuring = true;
+        int w = originImage->width(), h = originImage->height();
+
+        delete structRegion;
+        structRegion = new bool[w*h];
+        memset(structRegion, false, w*h*sizeof(bool));
+
+        structPixels.clear();
+        structPixelsArray.clear();
+
+        delete markupImage;
+        markupImage = new QImage;
+        *markupImage = markupImage_bak->copy(0, 0 , w, h);
+        imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
+        imageLabel->adjustSize();
+    }
 }
 
 /* *
@@ -604,28 +712,55 @@ void MainWindow::afterAct(ACTION_TYPE type) {
     imageLabel->adjustSize();
 }
 
-void MainWindow::__inpainting_markup(int x, int y, int r) {
-    int w = markupImage->width(), h = markupImage->height();
-    for (int dx = -r; dx <= r; dx ++)
-        for (int dy = -r; dy <= r; dy ++) {
-            if (SQR(dx) + SQR(dy) > SQR(r)) continue;
-            if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h) continue;
-            QPoint pos(x + dx, y + dy);
-            markupRegion[pos.x()*h + pos.y()] = true;
-            markupImage->setPixel(pos, QColor(Qt::blue).rgb());
+void MainWindow::__inpainting_drawline(QImage *img, QPoint &p1, QPoint &p2, int r, bool isPreview) {
+    int w = originImage->width(), h = originImage->height();
+    QPoint dp = p2 - p1;
+    if (abs(dp.x()) < abs(dp.y())) {
+        int sign = dp.y() > 0 ? 1 : -1;
+        for (int dt = 0; dt <= abs(dp.y()); dt ++) {
+            int y = p1.y() + sign*dt;
+            double k = dt * 1.0 / abs(dp.y());
+            int x = (int)(p1.x() + k * dp.x() + 0.5);
+            for (int dx = -r; dx <= r; dx ++)
+                for (int dy = -r; dy <= r; dy ++) {
+                    if (SQR(dx) + SQR(dy) > SQR(r)) continue;
+                    if (!ImageEditor::isValidPixel(x+dx, y+dy, w, h)) continue;
+                    QPoint pos(x+dx, y+dy);
+                    if (isStructuring) {
+                        img->setPixel(pos, QColor(Qt::cyan).rgb());
+                        if (!isPreview) {
+                            structRegion[pos.x()*h + pos.y()] = true;
+                            structPixels.push_back(pos);
+                        }
+                    } else {
+                        img->setPixel(pos, QColor(Qt::blue).rgb());
+                        markupRegion[pos.x()*h + pos.y()] = true;
+                    }
+                }
         }
-    imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
-}
-
-void MainWindow::__inpainting_structure(int x, int y, int r) {
-    int w = markupImage->width(), h = markupImage->height();
-    for (int dx = -r; dx <= r; dx ++)
-        for (int dy = -r; dy <= r; dy ++) {
-            if (SQR(dx) + SQR(dy) > SQR(r)) continue;
-            if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h) continue;
-            QPoint pos(x + dx, y + dy);
-            structureRegion.push_back(pos);
-            markupImage->setPixel(pos, QColor(Qt::cyan).rgb());
+    } else {
+        int sign = dp.x() > 0 ? 1 : -1;
+        for (int dt = 0; dt <= abs(dp.x()); dt ++) {
+            int x = p1.x() + sign*dt;
+            double k = dt * 1.0 / abs(dp.x());
+            int y = (int)(p1.y() + k * dp.y() + 0.5);
+            for (int dx = -r; dx <= r; dx ++)
+                for (int dy = -r; dy <= r; dy ++) {
+                    if (SQR(dx) + SQR(dy) > SQR(r)) continue;
+                    if (!ImageEditor::isValidPixel(x+dx, y+dy, w, h)) continue;
+                    QPoint pos(x+dx, y+dy);
+                    if (isStructuring) {
+                        img->setPixel(pos, QColor(Qt::cyan).rgb());
+                        if (!isPreview) {
+                            structRegion[pos.x()*h + pos.y()] = true;
+                            structPixels.push_back(pos);
+                        }
+                    } else {
+                        img->setPixel(pos, QColor(Qt::blue).rgb());
+                        markupRegion[pos.x()*h + pos.y()] = true;
+                    }
+                }
         }
-    imageLabel->setPixmap(QPixmap::fromImage(*markupImage));
+    }
+    imageLabel->setPixmap(QPixmap::fromImage(*img));
 }
